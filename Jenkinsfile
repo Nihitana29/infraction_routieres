@@ -24,21 +24,15 @@ pipeline {
 
         stage('SCA - OWASP Dependency Check') {
             steps {
-                script {
-                    def odcHome = tool 'DP-Check'
-                    dependencyCheck additionalArguments: "--scan ./ --format HTML --format XML", odcInstallation: 'DP-Check'
-                }
+                sh "/opt/dependency-check/bin/dependency-check.sh --scan ./ --format HTML --format XML --project infractions-routieres --out ."
                 dependencyCheckPublisher pattern: 'dependency-check-report.xml'
             }
         }
 
         stage('SAST - SonarQube Analysis') {
-            environment {
-                scannerHome = tool 'SonarQubeScanner'
-            }
             steps {
                 withSonarQubeEnv('SonarQubeServer') {
-                    sh "${scannerHome}/bin/sonar-scanner \
+                    sh "/opt/sonar-scanner/bin/sonar-scanner \
                         -Dsonar.projectKey=infractions_routieres \
                         -Dsonar.sources=backend_infractions-routieres,frontend_infractions-routieres"
                 }
