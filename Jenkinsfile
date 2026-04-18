@@ -24,8 +24,10 @@ pipeline {
 
         stage('SCA - OWASP Dependency Check') {
             steps {
-                // Assuming dependency-check is installed in Jenkins
-                dependencyCheck additionalArguments: '--scan ./ --format HTML --format XML', odcInstallation: 'DP-Check'
+                script {
+                    def odcHome = tool 'DP-Check'
+                    dependencyCheck additionalArguments: "--scan ./ --format HTML --format XML", odcInstallation: 'DP-Check'
+                }
                 dependencyCheckPublisher pattern: 'dependency-check-report.xml'
             }
         }
