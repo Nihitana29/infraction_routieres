@@ -1,7 +1,12 @@
+# Cosign Keys (NEVER PUSH PRIVATE KEYS)
+cosign.key
+cosign.pub
+
+# Harbor installer and config
+harbor-offline-installer-*.tgz
+harbor/
+
+# Node dependencies
 node_modules/
 dist/
 .env
-*.log
-.DS_Store
-.idea/
-.vscode/

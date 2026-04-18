@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         // Harbor Registry configurations
-        HARBOR_URL = 'registry.local'
+        HARBOR_URL = 'localhost:8082'
         HARBOR_PROJECT = 'infractions'
         IMAGE_NAME_BACKEND = "${HARBOR_URL}/${HARBOR_PROJECT}/backend"
         IMAGE_NAME_FRONTEND = "${HARBOR_URL}/${HARBOR_PROJECT}/frontend"
@@ -38,9 +38,7 @@ pipeline {
                 withSonarQubeEnv('SonarQubeServer') {
                     sh "${scannerHome}/bin/sonar-scanner \
                         -Dsonar.projectKey=infractions_routieres \
-                        -Dsonar.sources=backend_infractions-routieres,frontend_infractions-routieres \
-                        -Dsonar.host.url=http://sonarqube:9000 \
-                        -Dsonar.login=$SONAR_TOKEN"
+                        -Dsonar.sources=backend_infractions-routieres,frontend_infractions-routieres"
                 }
             }
         }

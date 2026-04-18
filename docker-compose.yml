@@ -5,13 +5,13 @@ services:
     image: mongo:6.0
     container_name: infractions-mongo
     ports:
-      - "27018:27017"
+      - "27017:27017"
     volumes:
       - mongo-data:/data/db
     restart: unless-stopped
 
   backend:
-    build: 
+    build:
       context: ./backend_infractions-routieres
       dockerfile: Dockerfile
     container_name: infractions-backend
@@ -35,5 +35,27 @@ services:
       - backend
     restart: unless-stopped
 
+  sonarqube:
+    image: sonarqube:lts-community
+    container_name: sonarqube
+    ports:
+      - "9000:9000"
+    networks:
+      - default
+      - jenkins_net
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_extensions:/opt/sonarqube/extensions
+      - sonarqube_logs:/opt/sonarqube/logs
+    restart: unless-stopped
+
 volumes:
   mongo-data:
+  sonarqube_data:
+  sonarqube_extensions:
+  sonarqube_logs:
+
+networks:
+  jenkins_net:
+    external: true
+    name: jenkinsdocker_default
