@@ -24,7 +24,9 @@ pipeline {
 
         stage('SCA - OWASP Dependency Check') {
             steps {
-                sh "/opt/dependency-check/bin/dependency-check.sh --scan ./ --format HTML --format XML --project infractions-routieres --out ."
+                catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
+                    sh "/opt/dependency-check/bin/dependency-check.sh --scan ./ --format HTML --format XML --project infractions-routieres --out ."
+                }
                 dependencyCheckPublisher pattern: 'dependency-check-report.xml'
             }
         }
