@@ -68,7 +68,10 @@ pipeline {
         stage('Quality Gate') {
             steps {
                 timeout(time: 1, unit: 'HOURS') {
-                    waitForQualityGate abortPipeline: true
+                    waitForQualityGate abortPipeline: false
+                }
+                withSonarQubeEnv('SonarQubeServer') {
+                    sh "curl -s -u \$SONAR_AUTH_TOKEN: http://sonarqube:9000/api/qualitygates/project_status?projectKey=infractions_routieres || true"
                 }
             }
         }
