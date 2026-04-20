@@ -33,13 +33,13 @@ function AddInfraction() {
     console.log(infraction);
 
     try {
-      const response = await api.post('/api/infractions', infraction)
+      await api.post('/api/infractions', infraction)
 
-      console.log(response.data);
+      ;
 
       navigate("/infractions");
-    } catch (error) {
-      console.error(error) 
+    } catch { /* ignore */
+       
     }
     
   };

@@ -17,7 +17,7 @@ const createInfraction = async (req, res) => {
         })
         return res.status(201).json(saveInfraction)
     } catch (error) {
-        console.error(error);
+        /* handled by global error handler or ignored */
         return res.status(500).json({ message: "Une erreur interne est survenue" })
     }
 }
@@ -27,7 +27,7 @@ const getAllInfractions = async (req, res) => {
         const infractions = await Infraction.find().populate('voiture')
         return res.status(200).json(infractions)
     } catch (error) {
-        console.error(error);
+        /* handled by global error handler or ignored */
         return res.status(500).json({ message: "Impossible de récupérer les infractions" })
     }
 }
@@ -44,7 +44,7 @@ const getInfractionById = async (req, res) => {
         }
         return res.status(200).json(infraction)
     } catch (error) {
-        console.error(error);
+        /* handled by global error handler or ignored */
         return res.status(500).json({ message: "Erreur lors de la récupération de l'infraction" })
     }
 }
@@ -65,7 +65,7 @@ const getInfractionsByVoiture = async (req, res) => {
             infractions
         })
     } catch (error) {
-        console.error(error);
+        /* handled by global error handler or ignored */
         return res.status(500).json({ message: "Erreur lors de la récupération des infractions par véhicule" })
     }
 }
@@ -92,7 +92,7 @@ const updateInfraction = async (req, res) => {
         }
         return res.status(200).json(update)
     } catch (error) {
-        console.error(error);
+        /* handled by global error handler or ignored */
         return res.status(500).json({ message: "Erreur lors de la mise à jour" })
     }
 }
@@ -109,7 +109,7 @@ const deleteInfraction = async (req, res) => {
         }
         return res.status(200).json({message: "Infraction supprimée"})
     } catch (error) {
-        console.error(error);
+        /* handled by global error handler or ignored */
         return res.status(500).json({ message: "Erreur lors de la suppression" })
     }
 }

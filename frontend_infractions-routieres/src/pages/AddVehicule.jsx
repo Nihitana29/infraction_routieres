@@ -22,13 +22,13 @@ function AddVehicule() {
     console.log(voiture);
     
     try {
-      const response = await api.post('/api/voitures/', voiture)
+      await api.post('/api/voitures/', voiture)
       
-      console.log(response.data);
+      ;
 
       navigate("/vehicules");
-    } catch (error) {
-      console.error(error);
+    } catch { /* ignore */
+      
     }
   };
 

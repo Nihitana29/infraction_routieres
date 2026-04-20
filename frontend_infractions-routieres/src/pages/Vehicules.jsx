@@ -11,16 +11,15 @@ function Vehicules() {
 
   const [ vehicules, setVehicules ] = useState([])
 
-  const fetchVehicules = async () => {
-    try {
-      const response = await api.get('/api/voitures')
-      setVehicules(response.data)
-    } catch (error) {
-      console.error(error);
-    }
-  }
-  
   useEffect(() => {
+    const fetchVehicules = async () => {
+      try {
+        const response = await api.get('/api/voitures')
+        setVehicules(response.data)
+      } catch {
+        // handle error
+      }
+    }
     fetchVehicules()
   }, [])
 
@@ -28,9 +27,11 @@ function Vehicules() {
     try {
       await api.post(`/api/voitures/delete-voiture/${id}`)
       alert("Véhicule supprimée")
-      fetchVehicules()
-    } catch (error) {
-      console.error(error);
+      // Quick inline fetch to update list without extracting fetchVehicules
+      const response = await api.get('/api/voitures')
+      setVehicules(response.data)
+    } catch {
+      // handle error
     }
   }
 

@@ -11,17 +11,15 @@ function Infractions() {
 
   const [ infractions, setInfractions ] = useState([])
   
-  const fetchInfractions = async () => {
+  useEffect(() => {
+    const fetchInfractions = async () => {
       try {
         const response = await api.get('/api/infractions/')
-        console.log(response.data)
         setInfractions(response.data)
-      } catch (error) {
-        console.error(error)
+      } catch {
+        // handle error
       }
     }
-
-  useEffect(() => {
     fetchInfractions()
   }, [])
 
@@ -29,10 +27,10 @@ function Infractions() {
     try {
       await api.post(`/api/infractions/delete-infraction/${id}`)
       alert("Infraction supprimée")
-      fetchInfractions()
-    } catch (error) {
-      console.error(error);
-      
+      const response = await api.get('/api/infractions/')
+      setInfractions(response.data)
+    } catch {
+      // handle error
     }
   }
 

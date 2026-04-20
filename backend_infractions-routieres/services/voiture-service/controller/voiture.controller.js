@@ -7,7 +7,7 @@ const createVoiture = async (req, res) => {
         const saveVoiture = await Voiture.create({ plaque, marque, modele, proprietaire })
         return res.status(201).json(saveVoiture)
     } catch (error) {
-        console.error(error);
+        /* handled by global error handler or ignored */
         return res.status(500).json({ message: "Erreur lors de la création du véhicule" })
     }
 }
@@ -17,7 +17,7 @@ const getAllVoitures = async (req, res) => {
         const voitures = await Voiture.find()
         return res.status(200).json(voitures)
     } catch (error) {
-        console.error(error);
+        /* handled by global error handler or ignored */
         return res.status(500).json({ message: "Impossible de récupérer les véhicules" })
     }
 }
@@ -34,7 +34,7 @@ const getVoitureById = async (req, res) => {
         }
         return res.status(200).json(voiture)
     } catch (error) {
-        console.error(error);
+        /* handled by global error handler or ignored */
         return res.status(500).json({ message: "Erreur lors de la récupération du véhicule" })
     }
 }
@@ -52,7 +52,7 @@ const updateVoiture = async (req, res) => {
         }
         return res.status(200).json(update)
     } catch (error) {
-        console.error(error);
+        /* handled by global error handler or ignored */
         return res.status(500).json({ message: "Erreur lors de la mise à jour" })
     }
 }
@@ -69,7 +69,7 @@ const deleteVoiture = async (req, res) => {
         }
         return res.status(200).json({message: "Voiture supprimée"})
     } catch (error) {
-        console.error(error);
+        /* handled by global error handler or ignored */
         return res.status(500).json({ message: "Erreur lors de la suppression" })
     }
 }

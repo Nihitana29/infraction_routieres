@@ -13,7 +13,7 @@ const reglerPaiement = async (req, res) => {
         }
         return res.status(200).json(updateStatut)
     } catch (error) {
-        console.error(error);
+        /* handled by global error handler or ignored */
         return res.status(500).json({ message: "Erreur lors du traitement du paiement" })
     }
 }

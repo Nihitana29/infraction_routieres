@@ -17,7 +17,7 @@ function VehiculeInfractions() {
     const fetchInfractions = async () => {
       try {
         const response = await api.get(`/api/infractions/voiture/${id}`)
-        console.log(response.data);
+        ;
         setInfractions(response.data.infractions)
         setPlaque(response.data.voiture.plaque)
       } catch (error) {
