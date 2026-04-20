@@ -25,8 +25,8 @@ pipeline {
         stage('SCA - OWASP Dependency Check') {
             steps {
                 catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
-                    // Ajout de --noupdate pour éviter l'erreur 403 de la NVD sans clé API
-                    sh "/opt/dependency-check/bin/dependency-check.sh --scan ./ --format HTML --format XML --project infractions-routieres --out . --noupdate"
+                    // Suppression de --noupdate pour permettre l'initialisation de la base NVD
+                    sh "/opt/dependency-check/bin/dependency-check.sh --scan ./ --format HTML --format XML --project infractions-routieres --out . "
                 }
                 dependencyCheckPublisher pattern: 'dependency-check-report.xml'
             }
@@ -36,14 +36,15 @@ pipeline {
             agent {
                 docker {
                     image 'sonarsource/sonar-scanner-cli:latest'
-                    args '--network jenkinsdocker_default'
+                    args '--network jenkinsdocker_default --memory="4g" --memory-reservation="2g"'
                 }
             }
             steps {
                 withSonarQubeEnv('SonarQubeServer') {
                     sh "sonar-scanner \
                         -Dsonar.projectKey=infractions_routieres \
-                        -Dsonar.sources=backend_infractions-routieres,frontend_infractions-routieres"
+                        -Dsonar.sources=backend_infractions-routieres,frontend_infractions-routieres \
+                        -Dsonar.javascript.node.maxspace=4096"
                 }
             }
         }
