@@ -3,19 +3,21 @@ const Voiture = require('./../../../models/voiture.model')
 
 const createInfraction = async (req, res) => {
     try {
-        const voiture = await Voiture.findOne({ plaque: req.body.plaque })
+        const { plaque, type, montant, statut } = req.body;
+        const voiture = await Voiture.findOne({ plaque })
         if(!voiture) {
             return res.status(404).json({ message: "Voiture non trouvée" })
         }
         const saveInfraction = await Infraction.create({
             voiture: voiture._id,
-            type: req.body.type,
-            montant: req.body.montant,
-            statut: req.body.statut
+            type,
+            montant,
+            statut
         })
         return res.status(201).json(saveInfraction)
     } catch (error) {
-        return res.status(500).json({ error: error.message })
+        console.error(error);
+        return res.status(500).json({ message: "Une erreur interne est survenue" })
     }
 }
 
@@ -24,7 +26,8 @@ const getAllInfractions = async (req, res) => {
         const infractions = await Infraction.find().populate('voiture')
         return res.status(200).json(infractions)
     } catch (error) {
-        return res.status(500).json({ error: error.message })
+        console.error(error);
+        return res.status(500).json({ message: "Impossible de récupérer les infractions" })
     }
 }
 
@@ -32,9 +35,13 @@ const getInfractionById = async (req, res) => {
     try {
         const infractionId = req.params.id
         const infraction = await Infraction.findById(infractionId).populate('voiture')
+        if (!infraction) {
+            return res.status(404).json({ message: "Infraction non trouvée" })
+        }
         return res.status(200).json(infraction)
     } catch (error) {
-        return res.status(500).json({ error: error.message })
+        console.error(error);
+        return res.status(500).json({ message: "Erreur lors de la récupération de l'infraction" })
     }
 }
 
@@ -42,42 +49,55 @@ const getInfractionsByVoiture = async (req, res) => {
     try {
         const voitureId = req.params.id
         const voiture = await Voiture.findById(voitureId)
+        if (!voiture) {
+            return res.status(404).json({ message: "Voiture non trouvée" })
+        }
         const infractions = await Infraction.find({ voiture: voitureId }).populate('voiture')
         return res.status(200).json({
             voiture, 
             infractions
         })
     } catch (error) {
-        return res.status(500).json({ error: error.message })
+        console.error(error);
+        return res.status(500).json({ message: "Erreur lors de la récupération des infractions par véhicule" })
     }
 }
 
 const updateInfraction = async (req, res) => {
     try {
-        const voiture = await Voiture.findOne({ plaque: req.body.plaque })
+        const { plaque, type, montant, statut } = req.body;
+        const voiture = await Voiture.findOne({ plaque })
         if(!voiture) {
             return res.status(404).json({ message: "Voiture non trouvée" })
         }
         const infractionId = req.params.id 
         const update = await Infraction.findByIdAndUpdate(infractionId, {
             voiture: voiture._id,
-            type: req.body.type,
-            montant: req.body.montant,
-            statut: req.body.statut
+            type,
+            montant,
+            statut
         }, {new: true})
-        return res.status(201).json(update)
+        if (!update) {
+            return res.status(404).json({ message: "Infraction non trouvée" })
+        }
+        return res.status(200).json(update)
     } catch (error) {
-        return res.status(500).json({ error: error.message })
+        console.error(error);
+        return res.status(500).json({ message: "Erreur lors de la mise à jour" })
     }
 }
 
 const deleteInfraction = async (req, res) => {
     try {
         const infractionId = req.params.id
-        await Infraction.findByIdAndDelete(infractionId)
+        const deleted = await Infraction.findByIdAndDelete(infractionId)
+        if (!deleted) {
+            return res.status(404).json({ message: "Infraction non trouvée" })
+        }
         return res.status(200).json({message: "Infraction supprimée"})
     } catch (error) {
-        return res.status(500).json({error: error.message})
+        console.error(error);
+        return res.status(500).json({ message: "Erreur lors de la suppression" })
     }
 }
 

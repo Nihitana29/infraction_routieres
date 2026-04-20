@@ -4,9 +4,13 @@ const reglerPaiement = async (req, res) => {
     try {
         const infractionId = req.params.id
         const updateStatut = await Infraction.findByIdAndUpdate(infractionId, {statut: 'paye'}, {new: true})
+        if (!updateStatut) {
+            return res.status(404).json({ message: "Infraction non trouvée" })
+        }
         return res.status(200).json(updateStatut)
     } catch (error) {
-        return res.status(500).json({error: error.message})
+        console.error(error);
+        return res.status(500).json({ message: "Erreur lors du traitement du paiement" })
     }
 }
 
