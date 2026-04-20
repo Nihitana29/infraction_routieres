@@ -25,8 +25,17 @@ pipeline {
         stage('SCA - OWASP Dependency Check') {
             steps {
                 catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
-                    // Suppression de --noupdate pour permettre l'initialisation de la base NVD
-                    sh "/opt/dependency-check/bin/dependency-check.sh --scan ./ --format HTML --format XML --project infractions-routieres --out . "
+                    script {
+                        def nvdApiKeyArg = ""
+                        try {
+                            withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
+                                nvdApiKeyArg = "--nvdApiKey ${NVD_API_KEY}"
+                            }
+                        } catch (Exception e) {
+                            echo "NVD API Key not found in Jenkins credentials, proceeding without it (rate limits may apply)."
+                        }
+                        sh "/opt/dependency-check/bin/dependency-check.sh --scan ./ --format HTML --format XML --project infractions-routieres --out . ${nvdApiKeyArg}"
+                    }
                 }
                 dependencyCheckPublisher pattern: 'dependency-check-report.xml'
             }
@@ -36,7 +45,7 @@ pipeline {
             agent {
                 docker {
                     image 'sonarsource/sonar-scanner-cli:latest'
-                    args '--network jenkinsdocker_default --memory="4g" --memory-reservation="2g"'
+                    args '--network jenkinsdocker_default --memory="1.5g" --memory-reservation="512m"'
                 }
             }
             steps {
@@ -44,7 +53,7 @@ pipeline {
                     sh "sonar-scanner \
                         -Dsonar.projectKey=infractions_routieres \
                         -Dsonar.sources=backend_infractions-routieres,frontend_infractions-routieres \
-                        -Dsonar.javascript.node.maxspace=4096"
+                        -Dsonar.javascript.node.maxspace=1024"
                 }
             }
         }
