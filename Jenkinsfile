@@ -15,6 +15,11 @@ pipeline {
         COSIGN_KEY_ID = 'cosign-key'
     }
 
+    triggers {
+        // Déclenche le pipeline automatiquement lors d'un 'git push' sur GitHub
+        githubPush()
+    }
+
     stages {
         stage('Checkout') {
             steps {
