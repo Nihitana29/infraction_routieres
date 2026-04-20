@@ -15,10 +15,6 @@ pipeline {
         COSIGN_KEY_ID = 'cosign-key'
     }
 
-    tools {
-        nodejs 'node' // Nom de l'outil Node.js configuré dans Jenkins
-    }
-
     stages {
         stage('Checkout') {
             steps {
@@ -36,12 +32,18 @@ pipeline {
         }
 
         stage('SAST - SonarQube Analysis') {
+            agent {
+                docker {
+                    image 'sonarsource/sonar-scanner-cli:latest'
+                    // Utilisation du réseau host pour contacter SonarQube si nécessaire
+                    args '--network host'
+                }
+            }
             steps {
                 withSonarQubeEnv('SonarQubeServer') {
-                    sh "/opt/sonar-scanner/bin/sonar-scanner \
+                    sh "sonar-scanner \
                         -Dsonar.projectKey=infractions_routieres \
-                        -Dsonar.sources=backend_infractions-routieres,frontend_infractions-routieres \
-                        -Dsonar.javascript.node.executable=\$(which node)"
+                        -Dsonar.sources=backend_infractions-routieres,frontend_infractions-routieres"
                 }
             }
         }
