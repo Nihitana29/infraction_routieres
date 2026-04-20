@@ -25,7 +25,8 @@ pipeline {
         stage('SCA - OWASP Dependency Check') {
             steps {
                 catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
-                    sh "/opt/dependency-check/bin/dependency-check.sh --scan ./ --format HTML --format XML --project infractions-routieres --out ."
+                    // Ajout de --noupdate pour éviter l'erreur 403 de la NVD sans clé API
+                    sh "/opt/dependency-check/bin/dependency-check.sh --scan ./ --format HTML --format XML --project infractions-routieres --out . --noupdate"
                 }
                 dependencyCheckPublisher pattern: 'dependency-check-report.xml'
             }
@@ -35,8 +36,7 @@ pipeline {
             agent {
                 docker {
                     image 'sonarsource/sonar-scanner-cli:latest'
-                    // Utilisation du réseau host pour contacter SonarQube si nécessaire
-                    args '--network host'
+                    args '--network jenkinsdocker_default'
                 }
             }
             steps {
