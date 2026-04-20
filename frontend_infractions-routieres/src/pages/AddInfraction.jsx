@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import axios from "axios";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import api from "../api";
 
 function AddInfraction() {
   const [searchParams] = useSearchParams()
@@ -15,7 +15,7 @@ function AddInfraction() {
     if(!voitureId) return
 
     const fetchVoiture = async () => {
-      const response = await axios.get(`http://localhost:3000/api/voitures/${voitureId}`)
+      const response = await api.get(`/api/voitures/${voitureId}`)
       setPlaque(response.data.plaque)
     }
     fetchVoiture()
@@ -33,7 +33,7 @@ function AddInfraction() {
     console.log(infraction);
 
     try {
-      const response = await axios.post('http://localhost:3000/api/infractions', infraction)
+      const response = await api.post('/api/infractions', infraction)
 
       console.log(response.data);
 

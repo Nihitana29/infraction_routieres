@@ -1,6 +1,6 @@
 import { Link, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../api";
 
 function VehiculeInfractions() {
   const { id } = useParams(); // pour récupérer la plaque depuis l'URL
@@ -16,7 +16,7 @@ function VehiculeInfractions() {
   useEffect(() => {
     const fetchInfractions = async () => {
       try {
-        const response = await axios.get(`http://localhost:3000/api/infractions/voiture/${id}`)
+        const response = await api.get(`/api/infractions/voiture/${id}`)
         console.log(response.data);
         setInfractions(response.data.infractions)
         setPlaque(response.data.voiture.plaque)

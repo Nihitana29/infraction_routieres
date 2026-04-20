@@ -34,6 +34,15 @@ app.use(mongoSanitize());
 // Routes
 app.use('/api', require('./routes/api.route'));
 
+// Error Handler
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({
+        message: 'Une erreur interne est survenue',
+        error: process.env.NODE_ENV === 'development' ? err.message : {}
+    });
+});
+
 // Start Server
 const PORT = process.env.PORT || 3000;
 

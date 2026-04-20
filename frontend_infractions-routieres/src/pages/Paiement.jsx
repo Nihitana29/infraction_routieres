@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import axios from "axios";
+import api from "../api";
 
 function Paiement() {
   const { id } = useParams()
@@ -12,7 +12,7 @@ function Paiement() {
   useEffect(() => {
     const fetchInfraction = async () => {
       try {
-        const response = await axios.get(`http://localhost:3000/api/infractions/${id}`)
+        const response = await api.get(`/api/infractions/${id}`)
         const infraction = response.data
         setType(infraction.type)
         setMontant(infraction.montant)
@@ -25,7 +25,7 @@ function Paiement() {
 
   const handlePaiement = async (id) => {
     try {
-      await axios.post(`http://localhost:3000/api/paiement/${id}`)
+      await api.post(`/api/paiement/${id}`)
       alert("Paiement enregistré")
       navigate("/infractions");
     } catch (error) {

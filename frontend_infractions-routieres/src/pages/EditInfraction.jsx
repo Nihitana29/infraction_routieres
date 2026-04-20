@@ -1,6 +1,6 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../api";
 
 function EditInfraction() {
 
@@ -14,7 +14,7 @@ function EditInfraction() {
   useEffect(() => {
     const fetchInfraction = async () => {
       try {
-        const response = await axios.get(`http://localhost:3000/api/infractions/${id}`)
+        const response = await api.get(`/api/infractions/${id}`)
         const infraction = response.data
 
         setPlaque(infraction.voiture.plaque)
@@ -33,7 +33,7 @@ function EditInfraction() {
     e.preventDefault();
 
     try {
-      const response = await axios.post(`http://localhost:3000/api/infractions/update-infraction/${id}`, {
+      const response = await api.post(`/api/infractions/update-infraction/${id}`, {
         plaque,
         type, 
         montant

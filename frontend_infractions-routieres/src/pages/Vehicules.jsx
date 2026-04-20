@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import axios from "axios";
+import api from "../api";
 import { useEffect, useState } from "react";
 
 function Vehicules() {
@@ -13,7 +13,7 @@ function Vehicules() {
 
   const fetchVehicules = async () => {
     try {
-      const response = await axios.get('http://localhost:3000/api/voitures')
+      const response = await api.get('/api/voitures')
       setVehicules(response.data)
     } catch (error) {
       console.error(error);
@@ -26,7 +26,7 @@ function Vehicules() {
 
   const deleteVehicule = async (id) => {
     try {
-      await axios.post(`http://localhost:3000/api/voitures/delete-voiture/${id}`)
+      await api.post(`/api/voitures/delete-voiture/${id}`)
       alert("Véhicule supprimée")
       fetchVehicules()
     } catch (error) {

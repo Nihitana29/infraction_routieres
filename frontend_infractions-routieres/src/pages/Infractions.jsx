@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../api";
 
 function Infractions() {
 
@@ -13,7 +13,7 @@ function Infractions() {
   
   const fetchInfractions = async () => {
       try {
-        const response = await axios.get('http://localhost:3000/api/infractions/')
+        const response = await api.get('/api/infractions/')
         console.log(response.data)
         setInfractions(response.data)
       } catch (error) {
@@ -27,7 +27,7 @@ function Infractions() {
 
   const deleteInf = async (id) => {
     try {
-      await axios.post(`http://localhost:3000/api/infractions/delete-infraction/${id}`)
+      await api.post(`/api/infractions/delete-infraction/${id}`)
       alert("Infraction supprimée")
       fetchInfractions()
     } catch (error) {

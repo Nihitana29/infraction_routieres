@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import axios from "axios";
+import api from "../api";
 
 function EditVehicule() {
   const { id } = useParams(); // On récupère l'ID de la voiture à éditer
@@ -14,7 +14,7 @@ function EditVehicule() {
   useEffect(() => {
     const fetchVoiture = async () => {
       try {
-        const response = await axios.get(`http://localhost:3000/api/voitures/${id}`)
+        const response = await api.get(`/api/voitures/${id}`)
         const voiture = response.data
 
         setPlaque(voiture.plaque)
@@ -32,7 +32,7 @@ function EditVehicule() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post(`http://localhost:3000/api/voitures/update-voiture/${id}`, {
+      const response = await api.post(`/api/voitures/update-voiture/${id}`, {
         plaque,
         proprietaire,
         marque,

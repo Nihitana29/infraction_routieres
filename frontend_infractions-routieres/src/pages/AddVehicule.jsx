@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../api";
 
 function AddVehicule() {
   const [plaque, setPlaque] = useState("");
@@ -22,7 +22,7 @@ function AddVehicule() {
     console.log(voiture);
     
     try {
-      const response = await axios.post('http://localhost:3000/api/voitures/', voiture)
+      const response = await api.post('/api/voitures/', voiture)
       
       console.log(response.data);
 
