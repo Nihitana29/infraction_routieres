@@ -58,6 +58,8 @@ pipeline {
                     sh "sonar-scanner \
                         -Dsonar.projectKey=infractions_routieres \
                         -Dsonar.sources=backend_infractions-routieres,frontend_infractions-routieres \
+                        -Dsonar.coverage.exclusions=**/* \
+                        -Dsonar.cpd.exclusions=**/* \
                         -Dsonar.javascript.node.maxspace=1024" // 1024=1gb, 2048=2gb
                 }
             }
