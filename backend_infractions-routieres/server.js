@@ -3,6 +3,7 @@ const dotenv = require('dotenv');
 const helmet = require('helmet');
 const cors = require('cors');
 const connectDB = require('./config/database');
+const mongoSanitize = require('express-mongo-sanitize');
 
 const rateLimit = require('express-rate-limit');
 
@@ -28,6 +29,7 @@ app.use(cors({
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(mongoSanitize());
 
 // Routes
 app.use('/api', require('./routes/api.route'));

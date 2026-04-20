@@ -1,8 +1,12 @@
+const mongoose = require('mongoose')
 const Infraction = require('./../../../models/infraction.model')
 
 const reglerPaiement = async (req, res) => {
     try {
         const infractionId = req.params.id
+        if (!mongoose.Types.ObjectId.isValid(infractionId)) {
+            return res.status(400).json({ message: "ID d'infraction invalide" })
+        }
         const updateStatut = await Infraction.findByIdAndUpdate(infractionId, {statut: 'paye'}, {new: true})
         if (!updateStatut) {
             return res.status(404).json({ message: "Infraction non trouvée" })

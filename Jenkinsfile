@@ -34,7 +34,7 @@ pipeline {
                         } catch (Exception e) {
                             echo "NVD API Key not found in Jenkins credentials, proceeding without it (rate limits may apply)."
                         }
-                        sh "/opt/dependency-check/bin/dependency-check.sh --scan ./ --format HTML --format XML --project infractions-routieres --out . ${nvdApiKeyArg}"
+                        sh "/opt/dependency-check/bin/dependency-check.sh --scan ./ --format HTML --format XML --project infractions-routieres --out . ${nvdApiKeyArg} || /opt/dependency-check/bin/dependency-check.sh --scan ./ --format HTML --format XML --project infractions-routieres --out . --noupdate ${nvdApiKeyArg}"
                     }
                 }
                 dependencyCheckPublisher pattern: 'dependency-check-report.xml'
