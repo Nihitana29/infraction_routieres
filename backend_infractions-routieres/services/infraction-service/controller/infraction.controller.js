@@ -1,3 +1,4 @@
+const mongoose = require('mongoose')
 const Infraction = require('./../../../models/infraction.model')
 const Voiture = require('./../../../models/voiture.model')
 
@@ -34,6 +35,9 @@ const getAllInfractions = async (req, res) => {
 const getInfractionById = async (req, res) => {
     try {
         const infractionId = req.params.id
+        if (!mongoose.Types.ObjectId.isValid(infractionId)) {
+            return res.status(400).json({ message: "ID d'infraction invalide" })
+        }
         const infraction = await Infraction.findById(infractionId).populate('voiture')
         if (!infraction) {
             return res.status(404).json({ message: "Infraction non trouvée" })
@@ -48,6 +52,9 @@ const getInfractionById = async (req, res) => {
 const getInfractionsByVoiture = async (req, res) => {
     try {
         const voitureId = req.params.id
+        if (!mongoose.Types.ObjectId.isValid(voitureId)) {
+            return res.status(400).json({ message: "ID de véhicule invalide" })
+        }
         const voiture = await Voiture.findById(voitureId)
         if (!voiture) {
             return res.status(404).json({ message: "Voiture non trouvée" })
@@ -71,6 +78,9 @@ const updateInfraction = async (req, res) => {
             return res.status(404).json({ message: "Voiture non trouvée" })
         }
         const infractionId = req.params.id 
+        if (!mongoose.Types.ObjectId.isValid(infractionId)) {
+            return res.status(400).json({ message: "ID d'infraction invalide" })
+        }
         const update = await Infraction.findByIdAndUpdate(infractionId, {
             voiture: voiture._id,
             type,
@@ -90,6 +100,9 @@ const updateInfraction = async (req, res) => {
 const deleteInfraction = async (req, res) => {
     try {
         const infractionId = req.params.id
+        if (!mongoose.Types.ObjectId.isValid(infractionId)) {
+            return res.status(400).json({ message: "ID d'infraction invalide" })
+        }
         const deleted = await Infraction.findByIdAndDelete(infractionId)
         if (!deleted) {
             return res.status(404).json({ message: "Infraction non trouvée" })

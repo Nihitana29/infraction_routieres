@@ -1,8 +1,10 @@
+const mongoose = require('mongoose')
 const Voiture = require('./../../../models/voiture.model')
 
 const createVoiture = async (req, res) => {
     try {
-        const saveVoiture = await Voiture.create(req.body)
+        const { plaque, marque, modele, proprietaire } = req.body;
+        const saveVoiture = await Voiture.create({ plaque, marque, modele, proprietaire })
         return res.status(201).json(saveVoiture)
     } catch (error) {
         console.error(error);
@@ -23,6 +25,9 @@ const getAllVoitures = async (req, res) => {
 const getVoitureById = async (req, res) => {
     try {
         const voitureId = req.params.id
+        if (!mongoose.Types.ObjectId.isValid(voitureId)) {
+            return res.status(400).json({ message: "ID de véhicule invalide" })
+        }
         const voiture = await Voiture.findById(voitureId)
         if (!voiture) {
             return res.status(404).json({ message: "Véhicule non trouvé" })
@@ -37,7 +42,11 @@ const getVoitureById = async (req, res) => {
 const updateVoiture = async (req, res) => {
     try {
         const voitureId = req.params.id
-        const update = await Voiture.findByIdAndUpdate(voitureId, req.body, {new: true})
+        if (!mongoose.Types.ObjectId.isValid(voitureId)) {
+            return res.status(400).json({ message: "ID de véhicule invalide" })
+        }
+        const { plaque, marque, modele, proprietaire } = req.body;
+        const update = await Voiture.findByIdAndUpdate(voitureId, { plaque, marque, modele, proprietaire }, {new: true})
         if (!update) {
             return res.status(404).json({ message: "Véhicule non trouvé" })
         }
@@ -51,6 +60,9 @@ const updateVoiture = async (req, res) => {
 const deleteVoiture = async (req, res) => {
     try {
         const voitureId = req.params.id
+        if (!mongoose.Types.ObjectId.isValid(voitureId)) {
+            return res.status(400).json({ message: "ID de véhicule invalide" })
+        }
         const deleted = await Voiture.findByIdAndDelete(voitureId)
         if (!deleted) {
             return res.status(404).json({ message: "Véhicule non trouvé" })

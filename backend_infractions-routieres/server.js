@@ -4,14 +4,24 @@ const helmet = require('helmet');
 const cors = require('cors');
 const connectDB = require('./config/database');
 
+const rateLimit = require('express-rate-limit');
+
 dotenv.config();
 
 const app = express();
 
+// Rate Limiting
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, 
+    max: 100,
+    message: 'Too many requests from this IP, please try again after 15 minutes'
+});
+
 // Security Middleware
+app.use(limiter);
 app.use(helmet());
 app.use(cors({
-    origin: process.env.CLIENT_URL || '*',
+    origin: process.env.CLIENT_URL || 'http://localhost:5173',
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
