@@ -68,10 +68,19 @@ pipeline {
         stage('Quality Gate') {
             steps {
                 timeout(time: 1, unit: 'HOURS') {
-                    waitForQualityGate abortPipeline: false
+                    waitForQualityGate abortPipeline: true
                 }
                 withSonarQubeEnv('SonarQubeServer') {
                     sh "curl -s -u \$SONAR_AUTH_TOKEN: http://sonarqube:9000/api/qualitygates/project_status?projectKey=infractions_routieres || true"
+                }
+            }
+        }
+
+        stage('Unit Tests') {
+            steps {
+                script {
+                    echo "Running Backend Tests..."
+                    sh "cd backend_infractions-routieres && npm test"
                 }
             }
         }

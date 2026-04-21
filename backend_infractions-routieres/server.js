@@ -54,3 +54,4 @@ connectDB().then(() => {
     console.error('Failed to connect to DB', err);
     process.exit(1);
 });
+module.exports = app;
