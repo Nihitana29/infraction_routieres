@@ -7,7 +7,7 @@ router.get('/', getAllInfractions)
 router.post('/', infractionValidation, validate, createInfraction)
 router.get('/:id', paramIdValidation, validate, getInfractionById)
 router.get('/voiture/:id', paramIdValidation, validate, getInfractionsByVoiture)
-router.post('/update-infraction/:id', paramIdValidation, infractionValidation, validate, updateInfraction)
-router.post('/delete-infraction/:id', paramIdValidation, validate, deleteInfraction)
+router.put('/:id', paramIdValidation, infractionValidation, validate, updateInfraction)
+router.delete('/:id', paramIdValidation, validate, deleteInfraction)
 
 module.exports = router

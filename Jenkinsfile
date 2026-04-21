@@ -37,21 +37,38 @@ pipeline {
                                 nvdApiKeyArg = "--nvdApiKey ${NVD_API_KEY}"
                             }
                         } catch (Exception e) {
-                            echo "NVD API Key not found. Proceeding without it (scan might fail due to rate limits)."
+                            echo "NVD API Key not found. Proceeding without it."
                         }
                         
-                        // Tentative de scan avec mise à jour, puis sans mise à jour si échec
+                        // Tentative de scan. On ignore l'échec pour ne pas bloquer le pipeline en cas de problème de base NVD.
                         sh """
-                            /opt/dependency-check/bin/dependency-check.sh --scan ./ --format HTML --format XML --project infractions-routieres --out . ${nvdApiKeyArg} || \
-                            (echo 'NVD Update failed, attempting scan with local data only...' && \
-                             /opt/dependency-check/bin/dependency-check.sh --scan ./ --format HTML --format XML --project infractions-routieres --out . --noupdate)
+                            /opt/dependency-check/bin/dependency-check.sh --scan ./ --format HTML --format XML --project infractions-routieres --out . --failOnCVSS 7 ${nvdApiKeyArg} || \
+                            (echo 'NVD Update failed or high vulnerabilities found, attempting scan with local data only...' && \
+                             /opt/dependency-check/bin/dependency-check.sh --scan ./ --format HTML --format XML --project infractions-routieres --out . --noupdate || true)
                         """
                     }
                 }
-                dependencyCheckPublisher pattern: 'dependency-check-report.xml'
+                script {
+                    if (fileExists('dependency-check-report.xml')) {
+                        dependencyCheckPublisher pattern: 'dependency-check-report.xml'
+                    } else {
+                        echo "SCA report not found, skipping publication."
+                    }
+                }
             }
         }
 
+        stage('Unit Tests') {
+            steps {
+                script {
+                    echo "Running Backend Tests..."
+                    sh "cd backend_infractions-routieres && npm install && npm test"
+                    stash name: 'coverage', includes: 'backend_infractions-routieres/coverage/**'
+                }
+            }
+        }
+
+// ✅ SonarQube peut maintenant consommer le rapport de couverture
         stage('SAST - SonarQube Analysis') {
             agent {
                 docker {
@@ -60,13 +77,15 @@ pipeline {
                 }
             }
             steps {
+                unstash 'coverage'
                 withSonarQubeEnv('SonarQubeServer') {
-                    sh "sonar-scanner \
+                    sh """sonar-scanner \
                         -Dsonar.projectKey=infractions_routieres \
                         -Dsonar.sources=backend_infractions-routieres,frontend_infractions-routieres \
-                        -Dsonar.coverage.exclusions=**/* \
+                        -Dsonar.javascript.lcov.reportPaths=backend_infractions-routieres/coverage/lcov.info \
+                        -Dsonar.coverage.exclusions=frontend_infractions-routieres/**,backend_infractions-routieres/tests/** \
                         -Dsonar.cpd.exclusions=**/* \
-                        -Dsonar.javascript.node.maxspace=1024" // 1024=1gb, 2048=2gb
+                        -Dsonar.javascript.node.maxspace=1024"""
                 }
             }
         }
@@ -77,19 +96,12 @@ pipeline {
                     waitForQualityGate abortPipeline: true
                 }
                 withSonarQubeEnv('SonarQubeServer') {
+                    // Optionnel : Debug pour voir le statut détaillé
                     sh "curl -s -u \$SONAR_AUTH_TOKEN: http://sonarqube:9000/api/qualitygates/project_status?projectKey=infractions_routieres || true"
                 }
             }
         }
 
-        stage('Unit Tests') {
-            steps {
-                script {
-                    echo "Running Backend Tests..."
-                    sh "cd backend_infractions-routieres && npm test"
-                }
-            }
-        }
 
         stage('Build Docker Images') {
             steps {

@@ -32,7 +32,7 @@ function EditVehicule() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await api.post(`/api/voitures/update-voiture/${id}`, {
+      await api.put(`/api/voitures/${id}`, {
         plaque,
         proprietaire,
         marque,

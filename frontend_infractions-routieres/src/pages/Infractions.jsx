@@ -25,7 +25,7 @@ function Infractions() {
 
   const deleteInf = async (id) => {
     try {
-      await api.post(`/api/infractions/delete-infraction/${id}`)
+      await api.delete(`/api/infractions/${id}`)
       alert("Infraction supprimée")
       const response = await api.get('/api/infractions/')
       setInfractions(response.data)

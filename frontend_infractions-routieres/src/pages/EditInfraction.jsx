@@ -33,7 +33,7 @@ function EditInfraction() {
     e.preventDefault();
 
     try {
-      const response = await api.post(`/api/infractions/update-infraction/${id}`, {
+      const response = await api.put(`/api/infractions/${id}`, {
         plaque,
         type, 
         montant

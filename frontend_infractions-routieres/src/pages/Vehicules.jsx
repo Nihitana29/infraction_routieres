@@ -25,7 +25,7 @@ function Vehicules() {
 
   const deleteVehicule = async (id) => {
     try {
-      await api.post(`/api/voitures/delete-voiture/${id}`)
+      await api.delete(`/api/voitures/${id}`)
       alert("Véhicule supprimée")
       // Quick inline fetch to update list without extracting fetchVehicules
       const response = await api.get('/api/voitures')
