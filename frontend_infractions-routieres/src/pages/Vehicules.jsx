@@ -16,8 +16,8 @@ function Vehicules() {
       try {
         const response = await api.get('/api/voitures')
         setVehicules(response.data)
-      } catch {
-        // handle error
+      } catch (error) {
+        console.error("Erreur lors de la récupération des véhicules:", error);
       }
     }
     fetchVehicules()
@@ -30,8 +30,9 @@ function Vehicules() {
       // Quick inline fetch to update list without extracting fetchVehicules
       const response = await api.get('/api/voitures')
       setVehicules(response.data)
-    } catch {
-      // handle error
+    } catch (error) {
+      console.error("Erreur lors de la suppression du véhicule:", error);
+      alert("Impossible de supprimer le véhicule.");
     }
   }
 

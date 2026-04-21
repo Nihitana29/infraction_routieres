@@ -17,7 +17,7 @@ function EditInfraction() {
         const response = await api.get(`/api/infractions/${id}`)
         const infraction = response.data
 
-        setPlaque(infraction.voiture.plaque)
+        setPlaque(infraction.voiture?.plaque || "")
         setType(infraction.type)
         setMontant(infraction.montant)
 

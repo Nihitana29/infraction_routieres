@@ -96,6 +96,14 @@ describe('API Infractions Routières', () => {
             const res = await request(app).delete(`/api/voitures/${id}`);
             expect(res.statusCode).toBe(404);
         });
+
+        it('DELETE /api/voitures/:id - Succès', async () => {
+            const id = new mongoose.Types.ObjectId().toString();
+            mockVoiture.findByIdAndDelete.mockResolvedValue({ _id: id });
+            const res = await request(app).delete(`/api/voitures/${id}`);
+            expect(res.statusCode).toBe(200);
+            expect(res.body.message).toBe("Voiture supprimée");
+        });
     });
 
     describe('Gestion des Infractions', () => {
@@ -243,9 +251,96 @@ describe('API Infractions Routières', () => {
     });
 
     describe('Gestion des Erreurs (Catch blocks)', () => {
-        it('devrait passer les erreurs au middleware d\'erreur', async () => {
+        it('devrait passer les erreurs au middleware d\'erreur (Voiture)', async () => {
             mockVoiture.find.mockRejectedValue(new Error('DB Error'));
             const res = await request(app).get('/api/voitures');
+            expect(res.statusCode).toBe(500);
+        });
+
+        it('devrait passer les erreurs au middleware d\'erreur (Infraction)', async () => {
+            mockInfraction.find.mockReturnThis();
+            mockInfraction.populate.mockRejectedValue(new Error('DB Error'));
+            const res = await request(app).get('/api/infractions');
+            expect(res.statusCode).toBe(500);
+        });
+
+        it('devrait passer les erreurs au middleware d\'erreur (Paiement)', async () => {
+            const id = new mongoose.Types.ObjectId().toString();
+            mockInfraction.findByIdAndUpdate.mockRejectedValue(new Error('DB Error'));
+            const res = await request(app).post(`/api/paiement/${id}`);
+            expect(res.statusCode).toBe(500);
+        });
+
+        it('devrait gérer les erreurs en mode production', async () => {
+            const originalEnv = process.env.NODE_ENV;
+            process.env.NODE_ENV = 'production';
+            
+            mockVoiture.find.mockRejectedValue(new Error('DB Error'));
+            const res = await request(app).get('/api/voitures');
+            
+            expect(res.statusCode).toBe(500);
+            expect(res.body.message).toBe('Une erreur interne est survenue');
+            expect(res.body.error).toEqual({});
+            
+            process.env.NODE_ENV = originalEnv;
+        });
+
+        it('devrait gérer les erreurs de création de voiture', async () => {
+            mockVoiture.create.mockRejectedValue(new Error('Create Error'));
+            const res = await request(app).post('/api/voitures').send({ plaque: '1234 TAA', proprietaire: 'J', marque: 'M', modele: 'M' });
+            expect(res.statusCode).toBe(500);
+        });
+
+        it('devrait gérer les erreurs de recherche par ID (Voiture)', async () => {
+            mockVoiture.findById.mockRejectedValue(new Error('Find Error'));
+            const res = await request(app).get(`/api/voitures/${new mongoose.Types.ObjectId()}`);
+            expect(res.statusCode).toBe(500);
+        });
+
+        it('devrait gérer les erreurs de mise à jour (Voiture)', async () => {
+            mockVoiture.findByIdAndUpdate.mockRejectedValue(new Error('Update Error'));
+            const res = await request(app).put(`/api/voitures/${new mongoose.Types.ObjectId()}`).send({ plaque: '1234 TAA', proprietaire: 'J', marque: 'M', modele: 'M' });
+            expect(res.statusCode).toBe(500);
+        });
+
+        it('devrait gérer les erreurs de suppression (Voiture)', async () => {
+            mockVoiture.findByIdAndDelete.mockRejectedValue(new Error('Delete Error'));
+            const res = await request(app).delete(`/api/voitures/${new mongoose.Types.ObjectId()}`);
+            expect(res.statusCode).toBe(500);
+        });
+
+        it('devrait gérer les erreurs de création d\'infraction', async () => {
+            mockVoiture.findOne.mockResolvedValue({ _id: 'id' });
+            mockInfraction.create.mockRejectedValue(new Error('Create Error'));
+            const res = await request(app).post('/api/infractions').send({ plaque: '1234 TAA', type: 'V', montant: 100 });
+            expect(res.statusCode).toBe(500);
+        });
+
+        it('devrait gérer les erreurs de recherche d\'infractions par voiture', async () => {
+            mockVoiture.findById.mockResolvedValue({ _id: 'id' });
+            mockInfraction.find.mockReturnThis();
+            mockInfraction.populate.mockRejectedValue(new Error('Find Error'));
+            const res = await request(app).get(`/api/infractions/voiture/${new mongoose.Types.ObjectId()}`);
+            expect(res.statusCode).toBe(500);
+        });
+
+        it('devrait gérer les erreurs de recherche par ID (Infraction)', async () => {
+            mockInfraction.findById.mockReturnThis();
+            mockInfraction.populate.mockRejectedValue(new Error('Find Error'));
+            const res = await request(app).get(`/api/infractions/${new mongoose.Types.ObjectId()}`);
+            expect(res.statusCode).toBe(500);
+        });
+
+        it('devrait gérer les erreurs de mise à jour (Infraction)', async () => {
+            mockVoiture.findOne.mockResolvedValue({ _id: 'v-id' });
+            mockInfraction.findByIdAndUpdate.mockRejectedValue(new Error('Update Error'));
+            const res = await request(app).put(`/api/infractions/${new mongoose.Types.ObjectId()}`).send({ plaque: '1234 TAA', type: 'V', montant: 100 });
+            expect(res.statusCode).toBe(500);
+        });
+
+        it('devrait gérer les erreurs de suppression (Infraction)', async () => {
+            mockInfraction.findByIdAndDelete.mockRejectedValue(new Error('Delete Error'));
+            const res = await request(app).delete(`/api/infractions/${new mongoose.Types.ObjectId()}`);
             expect(res.statusCode).toBe(500);
         });
     });

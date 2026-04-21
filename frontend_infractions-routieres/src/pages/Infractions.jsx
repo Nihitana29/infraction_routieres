@@ -16,8 +16,8 @@ function Infractions() {
       try {
         const response = await api.get('/api/infractions/')
         setInfractions(response.data)
-      } catch {
-        // handle error
+      } catch (error) {
+        console.error("Erreur lors de la récupération des infractions:", error);
       }
     }
     fetchInfractions()
@@ -29,8 +29,9 @@ function Infractions() {
       alert("Infraction supprimée")
       const response = await api.get('/api/infractions/')
       setInfractions(response.data)
-    } catch {
-      // handle error
+    } catch (error) {
+      console.error("Erreur lors de la suppression de l'infraction:", error);
+      alert("Impossible de supprimer l'infraction.");
     }
   }
 
@@ -73,7 +74,7 @@ function Infractions() {
               >
 
                 <td className="py-4 px-6 font-semibold text-blue-600">
-                  {i.voiture.plaque}
+                  {i.voiture?.plaque || "N/A"}
                 </td>
 
                 <td className="py-4 px-6 text-gray-700">
