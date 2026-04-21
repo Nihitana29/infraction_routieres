@@ -111,8 +111,12 @@ pipeline {
                 timeout(time: 1, unit: 'HOURS') {
                     waitForQualityGate abortPipeline: true
                 }
-                withSonarQubeEnv('SonarQubeServer') {
-                    sh "curl -s -u \$SONAR_AUTH_TOKEN: http://sonarqube:9000/api/qualitygates/project_status?projectKey=infractions_routieres || true"
+                script {
+                    withCredentials([string(credentialsId: "${SONAR_TOKEN_ID}", variable: 'SONAR_AUTH_TOKEN')]) {
+                        withSonarQubeEnv('SonarQubeServer') {
+                            sh "curl -s -u $SONAR_AUTH_TOKEN: http://sonarqube:9000/api/qualitygates/project_status?projectKey=infractions_routieres || true"
+                        }
+                    }
                 }
             }
         }
@@ -179,8 +183,10 @@ pipeline {
 
     post {
         always {
-            node {
-                cleanWs()
+            script {
+                node('any') {
+                    cleanWs()
+                }
             }
         }
         success {
