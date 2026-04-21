@@ -22,7 +22,7 @@ function EditVehicule() {
         setMarque(voiture.marque)
         setModele(voiture.modele)
 
-      } catch (error) {
+      } catch {
         alert("Erreur lors du chargement des données du véhicule.");
       }
     }
@@ -39,7 +39,7 @@ function EditVehicule() {
         modele
       })
       navigate("/vehicules");
-    } catch (error) {
+    } catch {
       alert("Erreur lors de la mise à jour du véhicule.");
     }
     

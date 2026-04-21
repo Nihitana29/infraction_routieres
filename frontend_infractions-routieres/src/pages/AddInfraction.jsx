@@ -33,7 +33,7 @@ function AddInfraction() {
     try {
       await api.post('/api/infractions', infraction)
       navigate("/infractions");
-    } catch (error) {
+    } catch {
        alert("Erreur lors de l'ajout de l'infraction. Veuillez vérifier les données.");
     }
     

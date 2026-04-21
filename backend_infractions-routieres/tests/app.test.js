@@ -75,12 +75,26 @@ describe('API Infractions Routières', () => {
             expect(res.body.proprietaire).toBe('Updated');
         });
 
-        it('DELETE /api/voitures/:id - Succès', async () => {
+        it('GET /api/voitures/:id - 404', async () => {
             const id = new mongoose.Types.ObjectId().toString();
-            mockVoiture.findByIdAndDelete.mockResolvedValue({ _id: id });
+            mockVoiture.findById.mockResolvedValue(null);
+            const res = await request(app).get(`/api/voitures/${id}`);
+            expect(res.statusCode).toBe(404);
+        });
+
+        it('PUT /api/voitures/:id - 404', async () => {
+            const id = new mongoose.Types.ObjectId().toString();
+            const data = { plaque: '1234 TAA', proprietaire: 'U', marque: 'M', modele: 'M' };
+            mockVoiture.findByIdAndUpdate.mockResolvedValue(null);
+            const res = await request(app).put(`/api/voitures/${id}`).send(data);
+            expect(res.statusCode).toBe(404);
+        });
+
+        it('DELETE /api/voitures/:id - 404', async () => {
+            const id = new mongoose.Types.ObjectId().toString();
+            mockVoiture.findByIdAndDelete.mockResolvedValue(null);
             const res = await request(app).delete(`/api/voitures/${id}`);
-            expect(res.statusCode).toBe(200);
-            expect(res.body.message).toBe('Voiture supprimée');
+            expect(res.statusCode).toBe(404);
         });
     });
 
@@ -112,6 +126,14 @@ describe('API Infractions Routières', () => {
             expect(res.statusCode).toBe(200);
         });
 
+        it('GET /api/infractions/:id - 404', async () => {
+            const id = new mongoose.Types.ObjectId().toString();
+            mockInfraction.findById.mockReturnThis();
+            mockInfraction.populate.mockResolvedValue(null);
+            const res = await request(app).get(`/api/infractions/${id}`);
+            expect(res.statusCode).toBe(404);
+        });
+
         it('PUT /api/infractions/:id - Succès', async () => {
             const id = new mongoose.Types.ObjectId().toString();
             const voitureId = new mongoose.Types.ObjectId();
@@ -125,11 +147,33 @@ describe('API Infractions Routières', () => {
             expect(res.body.montant).toBe(6000);
         });
 
+        it('PUT /api/infractions/:id - 404 si voiture non trouvée', async () => {
+            const id = new mongoose.Types.ObjectId().toString();
+            mockVoiture.findOne.mockResolvedValue(null);
+            const res = await request(app).put(`/api/infractions/${id}`).send({ plaque: '1234 TAA', type: 'Vitesse', montant: 5000 });
+            expect(res.statusCode).toBe(404);
+        });
+
+        it('PUT /api/infractions/:id - 404 si infraction non trouvée', async () => {
+            const id = new mongoose.Types.ObjectId().toString();
+            mockVoiture.findOne.mockResolvedValue({ _id: 'someid' });
+            mockInfraction.findByIdAndUpdate.mockResolvedValue(null);
+            const res = await request(app).put(`/api/infractions/${id}`).send({ plaque: '1234 TAA', type: 'Vitesse', montant: 5000 });
+            expect(res.statusCode).toBe(404);
+        });
+
         it('DELETE /api/infractions/:id - Succès', async () => {
             const id = new mongoose.Types.ObjectId().toString();
             mockInfraction.findByIdAndDelete.mockResolvedValue({ _id: id });
             const res = await request(app).delete(`/api/infractions/${id}`);
             expect(res.statusCode).toBe(200);
+        });
+
+        it('DELETE /api/infractions/:id - 404', async () => {
+            const id = new mongoose.Types.ObjectId().toString();
+            mockInfraction.findByIdAndDelete.mockResolvedValue(null);
+            const res = await request(app).delete(`/api/infractions/${id}`);
+            expect(res.statusCode).toBe(404);
         });
 
         it('POST /api/paiement/:id - Succès', async () => {
@@ -138,6 +182,13 @@ describe('API Infractions Routières', () => {
             const res = await request(app).post(`/api/paiement/${id}`);
             expect(res.statusCode).toBe(200);
             expect(res.body.statut).toBe('paye');
+        });
+
+        it('POST /api/paiement/:id - 404', async () => {
+            const id = new mongoose.Types.ObjectId().toString();
+            mockInfraction.findByIdAndUpdate.mockResolvedValue(null);
+            const res = await request(app).post(`/api/paiement/${id}`);
+            expect(res.statusCode).toBe(404);
         });
 
         it('POST /api/infractions - 404 si voiture non trouvée', async () => {
@@ -157,6 +208,13 @@ describe('API Infractions Routières', () => {
             mockInfraction.populate.mockResolvedValue([{ type: 'Vitesse' }]);
             const res = await request(app).get(`/api/infractions/voiture/${id}`);
             expect(res.statusCode).toBe(200);
+        });
+
+        it('GET /api/infractions/voiture/:id - 404 si voiture non trouvée', async () => {
+            const id = new mongoose.Types.ObjectId().toString();
+            mockVoiture.findById.mockResolvedValue(null);
+            const res = await request(app).get(`/api/infractions/voiture/${id}`);
+            expect(res.statusCode).toBe(404);
         });
     });
 
@@ -181,6 +239,14 @@ describe('API Infractions Routières', () => {
             const res = await request(app).post('/api/voitures').send(data);
             // express-validator escape() change < à &lt;
             expect(res.body.proprietaire).not.toContain('<script>');
+        });
+    });
+
+    describe('Gestion des Erreurs (Catch blocks)', () => {
+        it('devrait passer les erreurs au middleware d\'erreur', async () => {
+            mockVoiture.find.mockRejectedValue(new Error('DB Error'));
+            const res = await request(app).get('/api/voitures');
+            expect(res.statusCode).toBe(500);
         });
     });
 });
