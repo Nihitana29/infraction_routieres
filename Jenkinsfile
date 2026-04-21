@@ -37,9 +37,15 @@ pipeline {
                                 nvdApiKeyArg = "--nvdApiKey ${NVD_API_KEY}"
                             }
                         } catch (Exception e) {
-                            echo "NVD API Key not found in Jenkins credentials, proceeding without it (rate limits may apply)."
+                            echo "NVD API Key not found. Proceeding without it (scan might fail due to rate limits)."
                         }
-                        sh "/opt/dependency-check/bin/dependency-check.sh --scan ./ --format HTML --format XML --project infractions-routieres --out . ${nvdApiKeyArg} || /opt/dependency-check/bin/dependency-check.sh --scan ./ --format HTML --format XML --project infractions-routieres --out . --noupdate ${nvdApiKeyArg}"
+                        
+                        // Tentative de scan avec mise à jour, puis sans mise à jour si échec
+                        sh """
+                            /opt/dependency-check/bin/dependency-check.sh --scan ./ --format HTML --format XML --project infractions-routieres --out . ${nvdApiKeyArg} || \
+                            (echo 'NVD Update failed, attempting scan with local data only...' && \
+                             /opt/dependency-check/bin/dependency-check.sh --scan ./ --format HTML --format XML --project infractions-routieres --out . --noupdate)
+                        """
                     }
                 }
                 dependencyCheckPublisher pattern: 'dependency-check-report.xml'

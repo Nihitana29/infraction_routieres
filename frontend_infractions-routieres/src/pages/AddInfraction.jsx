@@ -30,16 +30,11 @@ function AddInfraction() {
       montant
     }
 
-    console.log(infraction);
-
     try {
       await api.post('/api/infractions', infraction)
-
-      ;
-
       navigate("/infractions");
-    } catch { /* ignore */
-       
+    } catch (error) {
+       alert("Erreur lors de l'ajout de l'infraction. Veuillez vérifier les données.");
     }
     
   };

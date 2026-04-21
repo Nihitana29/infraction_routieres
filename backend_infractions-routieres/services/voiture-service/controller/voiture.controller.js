@@ -1,50 +1,40 @@
-const mongoose = require('mongoose')
 const Voiture = require('./../../../models/voiture.model')
 
-const createVoiture = async (req, res) => {
+const createVoiture = async (req, res, next) => {
     try {
         const { plaque, marque, modele, proprietaire } = req.body;
         const saveVoiture = await Voiture.create({ plaque, marque, modele, proprietaire })
         return res.status(201).json(saveVoiture)
     } catch (error) {
-        /* handled by global error handler or ignored */
-        return res.status(500).json({ message: "Erreur lors de la création du véhicule" })
+        next(error)
     }
 }
 
-const getAllVoitures = async (req, res) => {
+const getAllVoitures = async (req, res, next) => {
     try {
         const voitures = await Voiture.find()
         return res.status(200).json(voitures)
     } catch (error) {
-        /* handled by global error handler or ignored */
-        return res.status(500).json({ message: "Impossible de récupérer les véhicules" })
+        next(error)
     }
 }
 
-const getVoitureById = async (req, res) => {
+const getVoitureById = async (req, res, next) => {
     try {
         const voitureId = req.params.id
-        if (!mongoose.Types.ObjectId.isValid(voitureId)) {
-            return res.status(400).json({ message: "ID de véhicule invalide" })
-        }
         const voiture = await Voiture.findById(voitureId)
         if (!voiture) {
             return res.status(404).json({ message: "Véhicule non trouvé" })
         }
         return res.status(200).json(voiture)
     } catch (error) {
-        /* handled by global error handler or ignored */
-        return res.status(500).json({ message: "Erreur lors de la récupération du véhicule" })
+        next(error)
     }
 }
 
-const updateVoiture = async (req, res) => {
+const updateVoiture = async (req, res, next) => {
     try {
         const voitureId = req.params.id
-        if (!mongoose.Types.ObjectId.isValid(voitureId)) {
-            return res.status(400).json({ message: "ID de véhicule invalide" })
-        }
         const { plaque, marque, modele, proprietaire } = req.body;
         const update = await Voiture.findByIdAndUpdate(voitureId, { plaque, marque, modele, proprietaire }, {new: true})
         if (!update) {
@@ -52,25 +42,20 @@ const updateVoiture = async (req, res) => {
         }
         return res.status(200).json(update)
     } catch (error) {
-        /* handled by global error handler or ignored */
-        return res.status(500).json({ message: "Erreur lors de la mise à jour" })
+        next(error)
     }
 }
 
-const deleteVoiture = async (req, res) => {
+const deleteVoiture = async (req, res, next) => {
     try {
         const voitureId = req.params.id
-        if (!mongoose.Types.ObjectId.isValid(voitureId)) {
-            return res.status(400).json({ message: "ID de véhicule invalide" })
-        }
         const deleted = await Voiture.findByIdAndDelete(voitureId)
         if (!deleted) {
             return res.status(404).json({ message: "Véhicule non trouvé" })
         }
         return res.status(200).json({message: "Voiture supprimée"})
     } catch (error) {
-        /* handled by global error handler or ignored */
-        return res.status(500).json({ message: "Erreur lors de la suppression" })
+        next(error)
     }
 }
 

@@ -1,4 +1,4 @@
-const { body, validationResult } = require('express-validator');
+const { body, param, validationResult } = require('express-validator');
 
 /**
  * Middleware pour vérifier les résultats de la validation
@@ -14,6 +14,15 @@ const validate = (req, res, next) => {
       errors: errors.array() 
   });
 };
+
+/**
+ * Validation des IDs dans les paramètres URL
+ */
+const paramIdValidation = [
+  param('id')
+    .isMongoId()
+    .withMessage('Format d\'identifiant invalide')
+];
 
 /**
  * Règles de validation pour les Véhicules
@@ -62,6 +71,7 @@ const infractionValidation = [
 
 module.exports = {
   validate,
+  paramIdValidation,
   voitureValidation,
   infractionValidation
 };

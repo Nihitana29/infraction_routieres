@@ -23,7 +23,7 @@ function EditVehicule() {
         setModele(voiture.modele)
 
       } catch (error) {
-        console.error("Erreur lors du chargement", error)
+        alert("Erreur lors du chargement des données du véhicule.");
       }
     }
     fetchVoiture()
@@ -32,17 +32,15 @@ function EditVehicule() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await api.post(`/api/voitures/update-voiture/${id}`, {
+      await api.post(`/api/voitures/update-voiture/${id}`, {
         plaque,
         proprietaire,
         marque,
         modele
       })
-      console.log("Véhicule mis à jour", response.data);
-      
       navigate("/vehicules");
     } catch (error) {
-      console.error(error); 
+      alert("Erreur lors de la mise à jour du véhicule.");
     }
     
   };

@@ -1,8 +1,7 @@
-const mongoose = require('mongoose')
 const Infraction = require('./../../../models/infraction.model')
 const Voiture = require('./../../../models/voiture.model')
 
-const createInfraction = async (req, res) => {
+const createInfraction = async (req, res, next) => {
     try {
         const { plaque, type, montant, statut } = req.body;
         const voiture = await Voiture.findOne({ plaque })
@@ -17,44 +16,35 @@ const createInfraction = async (req, res) => {
         })
         return res.status(201).json(saveInfraction)
     } catch (error) {
-        /* handled by global error handler or ignored */
-        return res.status(500).json({ message: "Une erreur interne est survenue" })
+        next(error)
     }
 }
 
-const getAllInfractions = async (req, res) => {
+const getAllInfractions = async (req, res, next) => {
     try {
         const infractions = await Infraction.find().populate('voiture')
         return res.status(200).json(infractions)
     } catch (error) {
-        /* handled by global error handler or ignored */
-        return res.status(500).json({ message: "Impossible de récupérer les infractions" })
+        next(error)
     }
 }
 
-const getInfractionById = async (req, res) => {
+const getInfractionById = async (req, res, next) => {
     try {
         const infractionId = req.params.id
-        if (!mongoose.Types.ObjectId.isValid(infractionId)) {
-            return res.status(400).json({ message: "ID d'infraction invalide" })
-        }
         const infraction = await Infraction.findById(infractionId).populate('voiture')
         if (!infraction) {
             return res.status(404).json({ message: "Infraction non trouvée" })
         }
         return res.status(200).json(infraction)
     } catch (error) {
-        /* handled by global error handler or ignored */
-        return res.status(500).json({ message: "Erreur lors de la récupération de l'infraction" })
+        next(error)
     }
 }
 
-const getInfractionsByVoiture = async (req, res) => {
+const getInfractionsByVoiture = async (req, res, next) => {
     try {
         const voitureId = req.params.id
-        if (!mongoose.Types.ObjectId.isValid(voitureId)) {
-            return res.status(400).json({ message: "ID de véhicule invalide" })
-        }
         const voiture = await Voiture.findById(voitureId)
         if (!voiture) {
             return res.status(404).json({ message: "Voiture non trouvée" })
@@ -65,12 +55,11 @@ const getInfractionsByVoiture = async (req, res) => {
             infractions
         })
     } catch (error) {
-        /* handled by global error handler or ignored */
-        return res.status(500).json({ message: "Erreur lors de la récupération des infractions par véhicule" })
+        next(error)
     }
 }
 
-const updateInfraction = async (req, res) => {
+const updateInfraction = async (req, res, next) => {
     try {
         const { plaque, type, montant, statut } = req.body;
         const voiture = await Voiture.findOne({ plaque })
@@ -78,9 +67,6 @@ const updateInfraction = async (req, res) => {
             return res.status(404).json({ message: "Voiture non trouvée" })
         }
         const infractionId = req.params.id 
-        if (!mongoose.Types.ObjectId.isValid(infractionId)) {
-            return res.status(400).json({ message: "ID d'infraction invalide" })
-        }
         const update = await Infraction.findByIdAndUpdate(infractionId, {
             voiture: voiture._id,
             type,
@@ -92,25 +78,20 @@ const updateInfraction = async (req, res) => {
         }
         return res.status(200).json(update)
     } catch (error) {
-        /* handled by global error handler or ignored */
-        return res.status(500).json({ message: "Erreur lors de la mise à jour" })
+        next(error)
     }
 }
 
-const deleteInfraction = async (req, res) => {
+const deleteInfraction = async (req, res, next) => {
     try {
         const infractionId = req.params.id
-        if (!mongoose.Types.ObjectId.isValid(infractionId)) {
-            return res.status(400).json({ message: "ID d'infraction invalide" })
-        }
         const deleted = await Infraction.findByIdAndDelete(infractionId)
         if (!deleted) {
             return res.status(404).json({ message: "Infraction non trouvée" })
         }
         return res.status(200).json({message: "Infraction supprimée"})
     } catch (error) {
-        /* handled by global error handler or ignored */
-        return res.status(500).json({ message: "Erreur lors de la suppression" })
+        next(error)
     }
 }
 

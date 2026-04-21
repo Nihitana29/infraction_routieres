@@ -36,22 +36,29 @@ app.use('/api', require('./routes/api.route'));
 
 // Error Handler
 app.use((err, req, res, next) => {
-    console.error(err.stack);
+    if (process.env.NODE_ENV !== 'production') {
+        console.error(err);
+    } else {
+        console.error('Une erreur est survenue');
+    }
     res.status(500).json({
         message: 'Une erreur interne est survenue',
-        error: process.env.NODE_ENV === 'development' ? err.message : {}
+        error: process.env.NODE_ENV !== 'production' ? err.message : {}
     });
 });
 
 // Start Server
 const PORT = process.env.PORT || 3000;
 
-connectDB().then(() => {
-    app.listen(PORT, () => {
-        console.log(`Server running on port ${PORT}`);
+if (require.main === module) {
+    connectDB().then(() => {
+        app.listen(PORT, () => {
+            console.log(`Server running on port ${PORT}`);
+        });
+    }).catch(err => {
+        console.error('Failed to connect to DB', err);
+        process.exit(1);
     });
-}).catch(err => {
-    console.error('Failed to connect to DB', err);
-    process.exit(1);
-});
+}
+
 module.exports = app;
