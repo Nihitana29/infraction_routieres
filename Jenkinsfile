@@ -1,5 +1,5 @@
 pipeline {
-    agent any
+    agent none
 
     environment {
         // Harbor Registry configurations
@@ -22,12 +22,14 @@ pipeline {
 
     stages {
         stage('Checkout') {
+            agent any
             steps {
                 checkout scm
             }
         }
 
         stage('SCA - OWASP Dependency Check') {
+            agent any
             steps {
                 catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
                     script {
@@ -40,11 +42,14 @@ pipeline {
                             echo "NVD API Key not found. Proceeding without it."
                         }
                         
-                        // Tentative de scan. On ignore l'échec pour ne pas bloquer le pipeline en cas de problème de base NVD.
                         sh """
-                            /opt/dependency-check/bin/dependency-check.sh --scan ./ --format HTML --format XML --project infractions-routieres --out . --failOnCVSS 7 ${nvdApiKeyArg} || \
-                            (echo 'NVD Update failed or high vulnerabilities found, attempting scan with local data only...' && \
-                             /opt/dependency-check/bin/dependency-check.sh --scan ./ --format HTML --format XML --project infractions-routieres --out . --noupdate || true)
+                            if [ -f /opt/dependency-check/bin/dependency-check.sh ]; then
+                                /opt/dependency-check/bin/dependency-check.sh --scan ./ --format HTML --format XML --project infractions-routieres --out . --failOnCVSS 7 ${nvdApiKeyArg} || \
+                                (echo 'NVD Update failed or high vulnerabilities found, attempting scan with local data only...' && \
+                                 /opt/dependency-check/bin/dependency-check.sh --scan ./ --format HTML --format XML --project infractions-routieres --out . --noupdate || true)
+                            else
+                                echo "Dependency Check binary not found, skipping scan."
+                            fi
                         """
                     }
                 }
@@ -59,10 +64,20 @@ pipeline {
         }
 
         stage('Unit Tests') {
+            agent {
+                docker {
+                    image 'node:20-alpine'
+                    args '--network jenkinsdocker_default --entrypoint=""'
+                }
+            }
             steps {
                 script {
                     echo "Running Backend Tests..."
-                    sh "cd backend_infractions-routieres && npm install && npm test"
+                    sh """
+                        node -v
+                        npm -v
+                        cd backend_infractions-routieres && npm install && npm test
+                    """
                     stash name: 'coverage', includes: 'backend_infractions-routieres/coverage/**'
                 }
             }
@@ -73,7 +88,7 @@ pipeline {
             agent {
                 docker {
                     image 'sonarsource/sonar-scanner-cli:latest'
-                    args '--network jenkinsdocker_default --memory="1.5g" --memory-reservation="512m"'
+                    args '--network jenkinsdocker_default --memory="1.5g" --memory-reservation="512m" --entrypoint=""'
                 }
             }
             steps {
@@ -91,12 +106,12 @@ pipeline {
         }
 
         stage('Quality Gate') {
+            agent any
             steps {
                 timeout(time: 1, unit: 'HOURS') {
                     waitForQualityGate abortPipeline: true
                 }
                 withSonarQubeEnv('SonarQubeServer') {
-                    // Optionnel : Debug pour voir le statut détaillé
                     sh "curl -s -u \$SONAR_AUTH_TOKEN: http://sonarqube:9000/api/qualitygates/project_status?projectKey=infractions_routieres || true"
                 }
             }
@@ -104,6 +119,7 @@ pipeline {
 
 
         stage('Build Docker Images') {
+            agent any
             steps {
                 script {
                     echo "Building Backend Image..."
@@ -116,6 +132,7 @@ pipeline {
         }
 
         stage('Container Scanning - Trivy') {
+            agent any
             steps {
                 script {
                     echo "Scanning Backend Image..."
@@ -128,6 +145,7 @@ pipeline {
         }
 
         stage('Push Images to Harbor') {
+            agent any
             steps {
                 script {
                     withCredentials([usernamePassword(credentialsId: "${HARBOR_CREDENTIALS_ID}", passwordVariable: 'HARBOR_PASS', usernameVariable: 'HARBOR_USER')]) {
@@ -140,6 +158,7 @@ pipeline {
         }
 
         stage('Sign Images with Cosign') {
+            agent any
             steps {
                 script {
                     withCredentials([file(credentialsId: "${COSIGN_KEY_ID}", variable: 'COSIGN_KEY_FILE'), string(credentialsId: 'cosign-password', variable: 'COSIGN_PASSWORD')]) {
@@ -151,6 +170,7 @@ pipeline {
         }
         
         stage('Deploy (Optional / Managed)') {
+            agent any
             steps {
                 echo "Images are pushed and signed. Ready for deployment in a target environment."
             }
