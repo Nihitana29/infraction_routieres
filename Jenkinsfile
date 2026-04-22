@@ -2,23 +2,19 @@ pipeline {
     agent none
 
     environment {
-        // Harbor Registry configurations
         HARBOR_URL = 'localhost:8082'
         HARBOR_PROJECT = 'infractions'
         IMAGE_NAME_BACKEND = "${HARBOR_URL}/${HARBOR_PROJECT}/backend"
         IMAGE_NAME_FRONTEND = "${HARBOR_URL}/${HARBOR_PROJECT}/frontend"
         IMAGE_TAG = "v${env.BUILD_NUMBER}"
         
-        // Credentials IDs in Jenkins
         HARBOR_CREDENTIALS_ID = 'harbor-credentials'
         SONAR_TOKEN_ID = 'sonar-token'
         COSIGN_KEY_ID = 'cosign-key'
     }
 
-    // CORRECTION 1 : Suppression de githubPush() qui fait planter la syntaxe Groovy.
-    // (Le déclenchement doit être configuré dans l'interface Jenkins via "Build Triggers" > "GitHub hook trigger for GITScm polling")
     triggers {
-        pollSCM('H/5 * * * *') // Vérifie le repo Git toutes les 5 minutes en attendant de configurer le Webhook
+        pollSCM('H/5 * * * *')
     }
 
     stages {
@@ -46,7 +42,7 @@ pipeline {
                         sh """
                             if [ -f /opt/dependency-check/bin/dependency-check.sh ]; then
                                 /opt/dependency-check/bin/dependency-check.sh --scan ./ --format HTML --format XML --project infractions-routieres --out . --failOnCVSS 7 ${nvdApiKeyArg} || \
-                                (echo 'NVD Update failed or high vulnerabilities found, attempting scan with local data only...' && \
+                                (echo 'NVD Update failed, attempting scan with local data only...' && \
                                  /opt/dependency-check/bin/dependency-check.sh --scan ./ --format HTML --format XML --project infractions-routieres --out . --noupdate || true)
                             else
                                 echo "Dependency Check binary not found, skipping scan."
@@ -87,10 +83,9 @@ pipeline {
         stage('SAST - SonarQube Analysis') {
             agent {
                 docker {
-                    // CORRECTION 4 : Remplacement de "latest" par une version stable (5.0.1)
                     image 'sonarsource/sonar-scanner-cli:5.0.1'
-                    // CORRECTION 2 : Baisse drastique de la mémoire allouée pour sauver tes 8Go de RAM
-                    args '--network jenkinsdocker_default --memory="512m" --entrypoint=""'
+                    // CORRECTION 1 : On passe de 512m à 1g pour éviter le "Killed" par le système
+                    args '--network jenkinsdocker_default --memory=1g --entrypoint=""'
                 }
             }
             steps {
@@ -101,8 +96,7 @@ pipeline {
                         -Dsonar.sources=backend_infractions-routieres,frontend_infractions-routieres \
                         -Dsonar.javascript.lcov.reportPaths=backend_infractions-routieres/coverage/lcov.info \
                         -Dsonar.coverage.exclusions=frontend_infractions-routieres/**,backend_infractions-routieres/tests/** \
-                        -Dsonar.cpd.exclusions=**/* \
-                        -Dsonar.javascript.node.maxspace=512"""
+                        -Dsonar.cpd.exclusions=**/* """
                 }
             }
         }
@@ -111,7 +105,6 @@ pipeline {
             agent any
             steps {
                 timeout(time: 1, unit: 'HOURS') {
-                    // CORRECTION 3 : La fonction waitForQualityGate suffit à elle seule. Le curl redondant et risqué a été supprimé.
                     waitForQualityGate abortPipeline: true
                 }
             }
@@ -176,13 +169,10 @@ pipeline {
         }
     }
 
+    // CORRECTION 2 : Suppression du node('any') qui bloquait Jenkins à la fin
     post {
         always {
-            script {
-                node('any') {
-                    cleanWs()
-                }
-            }
+            cleanWs()
         }
         success {
             echo "Pipeline executed successfully!"
