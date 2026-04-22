@@ -26,12 +26,11 @@ function Infractions() {
   const deleteInf = async (id) => {
     try {
       await api.delete(`/api/infractions/${id}`)
-      alert("Infraction supprimée")
+      console.info("Infraction supprimée")
       const response = await api.get('/api/infractions/')
       setInfractions(response.data)
     } catch (error) {
       console.error("Erreur lors de la suppression de l'infraction:", error);
-      alert("Impossible de supprimer l'infraction.");
     }
   }
 

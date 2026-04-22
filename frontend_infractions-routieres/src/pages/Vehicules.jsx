@@ -26,13 +26,12 @@ function Vehicules() {
   const deleteVehicule = async (id) => {
     try {
       await api.delete(`/api/voitures/${id}`)
-      alert("Véhicule supprimée")
+      console.info("Véhicule supprimé")
       // Quick inline fetch to update list without extracting fetchVehicules
       const response = await api.get('/api/voitures')
       setVehicules(response.data)
     } catch (error) {
       console.error("Erreur lors de la suppression du véhicule:", error);
-      alert("Impossible de supprimer le véhicule.");
     }
   }
 

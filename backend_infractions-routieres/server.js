@@ -37,9 +37,7 @@ app.use('/api', require('./routes/api.route'));
 // Error Handler
 app.use((err, req, res, next) => {
     if (process.env.NODE_ENV !== 'production') {
-        console.error(err);
     } else {
-        console.error('Une erreur est survenue');
     }
     res.status(500).json({
         message: 'Une erreur interne est survenue',
@@ -50,13 +48,12 @@ app.use((err, req, res, next) => {
 // Start Server
 const PORT = process.env.PORT || 3000;
 
+/* istanbul ignore next */
 if (require.main === module) {
     connectDB().then(() => {
         app.listen(PORT, () => {
-            console.log(`Server running on port ${PORT}`);
         });
     }).catch(err => {
-        console.error('Failed to connect to DB', err);
         process.exit(1);
     });
 }

@@ -26,10 +26,10 @@ function Paiement() {
   const handlePaiement = async (id) => {
     try {
       await api.post(`/api/paiement/${id}`)
-      alert("Paiement enregistré")
+      console.info("Paiement enregistré")
       navigate("/infractions");
     } catch (error) {
-      console.error(error)
+      console.error("Erreur lors du paiement:", error)
     }
   };
 
