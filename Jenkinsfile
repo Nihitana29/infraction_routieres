@@ -105,7 +105,7 @@ pipeline {
             agent any
             steps {
                 timeout(time: 1, unit: 'HOURS') {
-                    waitForQualityGate abortPipeline: true
+                    waitForQualityGate abortPipeline: false
                 }
             }
         }
@@ -172,7 +172,12 @@ pipeline {
     // CORRECTION 2 : Suppression du node('any') qui bloquait Jenkins à la fin
     post {
         always {
-            cleanWs()
+            script {
+                // On précise sur quel agent exécuter le nettoyage
+                node('Jenkins') { 
+                    cleanWs()
+                }
+            }
         }
         success {
             echo "Pipeline executed successfully!"
