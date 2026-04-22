@@ -172,11 +172,10 @@ pipeline {
     // CORRECTION 2 : Suppression du node('any') qui bloquait Jenkins à la fin
     post {
         always {
-            script {
-                // On précise sur quel agent exécuter le nettoyage
-                node('Jenkins') { 
-                    cleanWs()
-                }
+            // On enveloppe le nettoyage dans un bloc node pour dire à Jenkins
+            // sur quelle machine exécuter cette commande
+            node('Jenkins') {
+                cleanWs()
             }
         }
         success {
