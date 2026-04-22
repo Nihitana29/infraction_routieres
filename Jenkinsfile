@@ -15,9 +15,10 @@ pipeline {
         COSIGN_KEY_ID = 'cosign-key'
     }
 
+    // CORRECTION 1 : Suppression de githubPush() qui fait planter la syntaxe Groovy.
+    // (Le déclenchement doit être configuré dans l'interface Jenkins via "Build Triggers" > "GitHub hook trigger for GITScm polling")
     triggers {
-        // Déclenche le pipeline automatiquement lors d'un 'git push' sur GitHub
-        githubPush()
+        pollSCM('H/5 * * * *') // Vérifie le repo Git toutes les 5 minutes en attendant de configurer le Webhook
     }
 
     stages {
@@ -83,12 +84,13 @@ pipeline {
             }
         }
 
-// ✅ SonarQube peut maintenant consommer le rapport de couverture
         stage('SAST - SonarQube Analysis') {
             agent {
                 docker {
-                    image 'sonarsource/sonar-scanner-cli:latest'
-                    args '--network jenkinsdocker_default --memory="1.5g" --memory-reservation="512m" --entrypoint=""'
+                    // CORRECTION 4 : Remplacement de "latest" par une version stable (5.0.1)
+                    image 'sonarsource/sonar-scanner-cli:5.0.1'
+                    // CORRECTION 2 : Baisse drastique de la mémoire allouée pour sauver tes 8Go de RAM
+                    args '--network jenkinsdocker_default --memory="512m" --entrypoint=""'
                 }
             }
             steps {
@@ -100,7 +102,7 @@ pipeline {
                         -Dsonar.javascript.lcov.reportPaths=backend_infractions-routieres/coverage/lcov.info \
                         -Dsonar.coverage.exclusions=frontend_infractions-routieres/**,backend_infractions-routieres/tests/** \
                         -Dsonar.cpd.exclusions=**/* \
-                        -Dsonar.javascript.node.maxspace=1024"""
+                        -Dsonar.javascript.node.maxspace=512"""
                 }
             }
         }
@@ -109,18 +111,11 @@ pipeline {
             agent any
             steps {
                 timeout(time: 1, unit: 'HOURS') {
+                    // CORRECTION 3 : La fonction waitForQualityGate suffit à elle seule. Le curl redondant et risqué a été supprimé.
                     waitForQualityGate abortPipeline: true
-                }
-                script {
-                    withCredentials([string(credentialsId: "${SONAR_TOKEN_ID}", variable: 'SONAR_AUTH_TOKEN')]) {
-                        withSonarQubeEnv('SonarQubeServer') {
-                            sh "curl -s -u $SONAR_AUTH_TOKEN: http://sonarqube:9000/api/qualitygates/project_status?projectKey=infractions_routieres || true"
-                        }
-                    }
                 }
             }
         }
-
 
         stage('Build Docker Images') {
             agent any
