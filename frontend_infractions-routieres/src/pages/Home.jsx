@@ -18,7 +18,7 @@ function Home() {
           to="/vehicules"
           className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl transition"
         >
-          <h2 className="text-2xl font-bold text-blue-600 mb-2">Véhicules</h2>
+          <h2 className="text-2xl font-bold text-blue-600 mb-2">Consulter les Véhicules</h2>
           <p className="text-gray-500">Gérer les voitures et propriétaires</p>
         </Link>
 
