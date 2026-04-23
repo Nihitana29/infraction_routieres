@@ -154,6 +154,7 @@ pipeline {
             environment {
                 // Force Cosign à accepter le HTTP (car host.docker.internal:8082 n'a pas de SSL)
                 COSIGN_INSECURE = 'true'
+                COSIGN_EXPERIMENTAL = '1'
             }
             steps {
                 script {
@@ -161,10 +162,18 @@ pipeline {
                         file(credentialsId: "${COSIGN_KEY_ID}", variable: 'COSIGN_KEY_FILE'), 
                         string(credentialsId: "${COSIGN_PASSWORD_ID}", variable: 'COSIGN_PASSWORD')
                     ]) {
+                        sh "cosign version"
+                        
+                        echo "Signing Backend Image..."
                         sh """
                             export COSIGN_PASSWORD="\${COSIGN_PASSWORD}"
-                            cosign sign --key "${COSIGN_KEY_FILE}" ${IMAGE_NAME_BACKEND}:${IMAGE_TAG} -y
-                            cosign sign --key "${COSIGN_KEY_FILE}" ${IMAGE_NAME_FRONTEND}:${IMAGE_TAG} -y
+                            cosign sign --key "\${COSIGN_KEY_FILE}" --allow-http-registry ${IMAGE_NAME_BACKEND}:${IMAGE_TAG} -y
+                        """
+                        
+                        echo "Signing Frontend Image..."
+                        sh """
+                            export COSIGN_PASSWORD="\${COSIGN_PASSWORD}"
+                            cosign sign --key "\${COSIGN_KEY_FILE}" --allow-http-registry ${IMAGE_NAME_FRONTEND}:${IMAGE_TAG} -y
                         """
                     }
                 }
