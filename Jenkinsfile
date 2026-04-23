@@ -2,7 +2,7 @@ pipeline {
     agent none
 
     environment {
-        HARBOR_URL = 'applaud-prodigy-landowner.ngrok-free.dev'
+        HARBOR_URL = 'host.docker.internal:8082'
         HARBOR_PROJECT = 'infractions'
         IMAGE_NAME_BACKEND = "${HARBOR_URL}/${HARBOR_PROJECT}/backend"
         IMAGE_NAME_FRONTEND = "${HARBOR_URL}/${HARBOR_PROJECT}/frontend"
@@ -85,7 +85,6 @@ pipeline {
             agent {
                 docker {
                     image 'sonarsource/sonar-scanner-cli:5.0.1'
-                    // CORRECTION 1 : On passe de 512m à 1g pour éviter le "Killed" par le système
                     args '--network jenkinsdocker_default --memory=1g --entrypoint=""'
                 }
             }
@@ -152,11 +151,21 @@ pipeline {
 
         stage('Sign Images with Cosign') {
             agent any
+            environment {
+                // Force Cosign à accepter le HTTP (car host.docker.internal:8082 n'a pas de SSL)
+                COSIGN_INSECURE = 'true'
+            }
             steps {
                 script {
-                    withCredentials([file(credentialsId: "${COSIGN_KEY_ID}", variable: 'COSIGN_KEY_FILE'), string(credentialsId: "${COSIGN_PASSWORD_ID}", variable: 'COSIGN_PASSWORD')]) {
-                        sh "cosign sign --key ${COSIGN_KEY_FILE} ${IMAGE_NAME_BACKEND}:${IMAGE_TAG} -y"
-                        sh "cosign sign --key ${COSIGN_KEY_FILE} ${IMAGE_NAME_FRONTEND}:${IMAGE_TAG} -y"
+                    withCredentials([
+                        file(credentialsId: "${COSIGN_KEY_ID}", variable: 'COSIGN_KEY_FILE'), 
+                        string(credentialsId: "${COSIGN_PASSWORD_ID}", variable: 'COSIGN_PASSWORD')
+                    ]) {
+                        sh """
+                            export COSIGN_PASSWORD="\${COSIGN_PASSWORD}"
+                            cosign sign --key "${COSIGN_KEY_FILE}" ${IMAGE_NAME_BACKEND}:${IMAGE_TAG} -y
+                            cosign sign --key "${COSIGN_KEY_FILE}" ${IMAGE_NAME_FRONTEND}:${IMAGE_TAG} -y
+                        """
                     }
                 }
             }
@@ -170,9 +179,10 @@ pipeline {
         }
     }
 
-
     post {
         always {
+            // Correction : node('') permet d'exécuter le cleanWs sur l'agent par défaut 
+            // sans chercher un label spécifique qui n'existe pas
             node('') {
                 cleanWs()
             }
