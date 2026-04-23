@@ -2,7 +2,7 @@ pipeline {
     agent none
 
     environment {
-        HARBOR_URL = 'https://applaud-prodigy-landowner.ngrok-free.dev'
+        HARBOR_URL = 'applaud-prodigy-landowner.ngrok-free.dev'
         HARBOR_PROJECT = 'infractions'
         IMAGE_NAME_BACKEND = "${HARBOR_URL}/${HARBOR_PROJECT}/backend"
         IMAGE_NAME_FRONTEND = "${HARBOR_URL}/${HARBOR_PROJECT}/frontend"
