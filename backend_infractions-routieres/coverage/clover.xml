@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<coverage generated="1776864793998" clover="3.2.0">
-  <project timestamp="1776864793998" name="All files">
+<coverage generated="1776867866332" clover="3.2.0">
+  <project timestamp="1776867866333" name="All files">
     <metrics statements="167" coveredstatements="167" conditionals="30" coveredconditionals="29" methods="14" coveredmethods="14" elements="211" coveredelements="210" complexity="0" loc="167" ncloc="167" packages="9" files="9" classes="9"/>
     <package name="backend_infractions-routieres">
       <metrics statements="22" coveredstatements="22" conditionals="8" coveredconditionals="7" methods="1" coveredmethods="1"/>

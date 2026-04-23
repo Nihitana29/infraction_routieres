@@ -11,6 +11,7 @@ pipeline {
         HARBOR_CREDENTIALS_ID = 'harbor-credentials'
         SONAR_TOKEN_ID = 'sonar-token'
         COSIGN_KEY_ID = 'cosign-key'
+        COSIGN_PASSWORD_ID = 'cosign-password'
     }
 
     triggers {
@@ -153,7 +154,7 @@ pipeline {
             agent any
             steps {
                 script {
-                    withCredentials([file(credentialsId: "${COSIGN_KEY_ID}", variable: 'COSIGN_KEY_FILE'), string(credentialsId: 'cosign-password', variable: 'COSIGN_PASSWORD')]) {
+                    withCredentials([file(credentialsId: "${COSIGN_KEY_ID}", variable: 'COSIGN_KEY_FILE'), string(credentialsId: "${COSIGN_PASSWORD_ID}", variable: 'COSIGN_PASSWORD')]) {
                         sh "cosign sign --key ${COSIGN_KEY_FILE} ${IMAGE_NAME_BACKEND}:${IMAGE_TAG} -y"
                         sh "cosign sign --key ${COSIGN_KEY_FILE} ${IMAGE_NAME_FRONTEND}:${IMAGE_TAG} -y"
                     }
