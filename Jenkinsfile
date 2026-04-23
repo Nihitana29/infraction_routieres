@@ -2,7 +2,7 @@ pipeline {
     agent none
 
     environment {
-        HARBOR_URL = 'localhost:8082'
+        HARBOR_URL = 'https://applaud-prodigy-landowner.ngrok-free.dev'
         HARBOR_PROJECT = 'infractions'
         IMAGE_NAME_BACKEND = "${HARBOR_URL}/${HARBOR_PROJECT}/backend"
         IMAGE_NAME_FRONTEND = "${HARBOR_URL}/${HARBOR_PROJECT}/frontend"
@@ -170,12 +170,10 @@ pipeline {
         }
     }
 
-    // CORRECTION 2 : Suppression du node('any') qui bloquait Jenkins à la fin
+
     post {
         always {
-            // On enveloppe le nettoyage dans un bloc node pour dire à Jenkins
-            // sur quelle machine exécuter cette commande
-            node('Jenkins') {
+            node('') {
                 cleanWs()
             }
         }
