@@ -9,9 +9,7 @@ services:
     restart: unless-stopped
 
   backend:
-    build:
-      context: ./backend_infractions-routieres
-      dockerfile: Dockerfile
+    image: host.docker.internal:8082/infractions/backend:latest
     container_name: infractions-backend
     ports:
       - "3000:3000"
@@ -24,9 +22,7 @@ services:
     restart: unless-stopped
 
   frontend:
-    build:
-      context: ./frontend_infractions-routieres
-      dockerfile: Dockerfile
+    image: host.docker.internal:8082/infractions/frontend:latest
     container_name: infractions-frontend
     ports:
       - "8081:8080"

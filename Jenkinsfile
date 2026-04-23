@@ -142,8 +142,16 @@ pipeline {
                 script {
                     withCredentials([usernamePassword(credentialsId: "${HARBOR_CREDENTIALS_ID}", passwordVariable: 'HARBOR_PASS', usernameVariable: 'HARBOR_USER')]) {
                         sh "echo \$HARBOR_PASS | docker login ${HARBOR_URL} -u \$HARBOR_USER --password-stdin"
+                        
+                        // Push versioned tags
                         sh "docker push ${IMAGE_NAME_BACKEND}:${IMAGE_TAG}"
                         sh "docker push ${IMAGE_NAME_FRONTEND}:${IMAGE_TAG}"
+                        
+                        // Tag and Push 'latest'
+                        sh "docker tag ${IMAGE_NAME_BACKEND}:${IMAGE_TAG} ${IMAGE_NAME_BACKEND}:latest"
+                        sh "docker tag ${IMAGE_NAME_FRONTEND}:${IMAGE_TAG} ${IMAGE_NAME_FRONTEND}:latest"
+                        sh "docker push ${IMAGE_NAME_BACKEND}:latest"
+                        sh "docker push ${IMAGE_NAME_FRONTEND}:latest"
                     }
                 }
             }
@@ -152,7 +160,6 @@ pipeline {
         stage('Sign Images with Cosign') {
             agent any
             environment {
-                // Force Cosign à accepter le HTTP (car host.docker.internal:8082 n'a pas de SSL)
                 COSIGN_INSECURE = 'true'
                 COSIGN_EXPERIMENTAL = '1'
             }
@@ -164,17 +171,13 @@ pipeline {
                     ]) {
                         sh "cosign version"
                         
-                        echo "Signing Backend Image..."
-                        sh """
-                            export COSIGN_PASSWORD="\${COSIGN_PASSWORD}"
-                            cosign sign --key "\${COSIGN_KEY_FILE}" --allow-http-registry ${IMAGE_NAME_BACKEND}:${IMAGE_TAG} -y
-                        """
+                        // Sign versioned images
+                        sh "export COSIGN_PASSWORD='\${COSIGN_PASSWORD}'; cosign sign --key '\${COSIGN_KEY_FILE}' --allow-http-registry ${IMAGE_NAME_BACKEND}:${IMAGE_TAG} -y"
+                        sh "export COSIGN_PASSWORD='\${COSIGN_PASSWORD}'; cosign sign --key '\${COSIGN_KEY_FILE}' --allow-http-registry ${IMAGE_NAME_FRONTEND}:${IMAGE_TAG} -y"
                         
-                        echo "Signing Frontend Image..."
-                        sh """
-                            export COSIGN_PASSWORD="\${COSIGN_PASSWORD}"
-                            cosign sign --key "\${COSIGN_KEY_FILE}" --allow-http-registry ${IMAGE_NAME_FRONTEND}:${IMAGE_TAG} -y
-                        """
+                        // Sign 'latest' images
+                        sh "export COSIGN_PASSWORD='\${COSIGN_PASSWORD}'; cosign sign --key '\${COSIGN_KEY_FILE}' --allow-http-registry ${IMAGE_NAME_BACKEND}:latest -y"
+                        sh "export COSIGN_PASSWORD='\${COSIGN_PASSWORD}'; cosign sign --key '\${COSIGN_KEY_FILE}' --allow-http-registry ${IMAGE_NAME_FRONTEND}:latest -y"
                     }
                 }
             }
