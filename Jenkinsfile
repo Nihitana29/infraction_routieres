@@ -161,6 +161,7 @@ pipeline {
             agent any
             environment {
                 COSIGN_INSECURE = 'true'
+                COSIGN_EXPERIMENTAL = '1'
             }
             steps {
                 script {
@@ -171,15 +172,24 @@ pipeline {
                     ]) {
                         sh "cosign version"
                         
-                        // Authentication to Harbor (reverting to docker login which worked)
-                        sh "echo \$HARBOR_PASS | docker login ${HARBOR_URL} -u \$HARBOR_USER --password-stdin"
-                        
-                        // Sign images (using --tlog-upload=false for private registries)
+                        // Combining login and signing into one block for better environment consistency
                         sh """
-                            cosign sign --key \$COSIGN_KEY_FILE --tlog-upload=false --allow-http-registry ${IMAGE_NAME_BACKEND}:${IMAGE_TAG} -y
-                            cosign sign --key \$COSIGN_KEY_FILE --tlog-upload=false --allow-http-registry ${IMAGE_NAME_FRONTEND}:${IMAGE_TAG} -y
-                            cosign sign --key \$COSIGN_KEY_FILE --tlog-upload=false --allow-http-registry ${IMAGE_NAME_BACKEND}:latest -y
-                            cosign sign --key \$COSIGN_KEY_FILE --tlog-upload=false --allow-http-registry ${IMAGE_NAME_FRONTEND}:latest -y
+                            set -x
+                            export COSIGN_PASSWORD=\$COSIGN_PASSWORD
+                            export COSIGN_LOG=debug
+                            
+                            echo "Authentication to Harbor..."
+                            echo \$HARBOR_PASS | docker login ${HARBOR_URL} -u \$HARBOR_USER --password-stdin
+                            
+                            echo "Verifying key file..."
+                            ls -l \$COSIGN_KEY_FILE
+                            
+                            echo "Signing images..."
+                            # Using both --allow-http-registry and --allow-insecure-registry for maximum compatibility with local setups
+                            cosign sign --key \$COSIGN_KEY_FILE --tlog-upload=false --allow-http-registry --allow-insecure-registry ${IMAGE_NAME_BACKEND}:${IMAGE_TAG} -y
+                            cosign sign --key \$COSIGN_KEY_FILE --tlog-upload=false --allow-http-registry --allow-insecure-registry ${IMAGE_NAME_FRONTEND}:${IMAGE_TAG} -y
+                            cosign sign --key \$COSIGN_KEY_FILE --tlog-upload=false --allow-http-registry --allow-insecure-registry ${IMAGE_NAME_BACKEND}:latest -y
+                            cosign sign --key \$COSIGN_KEY_FILE --tlog-upload=false --allow-http-registry --allow-insecure-registry ${IMAGE_NAME_FRONTEND}:latest -y
                         """
                     }
                 }
