@@ -173,8 +173,8 @@ pipeline {
                             
                             # Using password-stdin for cosign login if supported, otherwise falling back to -p
                             # Note: cosign login is often redundant if docker login succeeded, but can help with some registry types
-                            echo "$HARBOR_PASS" | cosign login "$HARBOR_URL" -u "$HARBOR_USER" --password-stdin --allow-http-registry || \
-                            cosign login "$HARBOR_URL" -u "$HARBOR_USER" -p "$HARBOR_PASS" --allow-http-registry
+                            echo "$HARBOR_PASS" | cosign login "$HARBOR_URL" -u "$HARBOR_USER" --password-stdin || \
+                            cosign login "$HARBOR_URL" -u "$HARBOR_USER" -p "$HARBOR_PASS" || true
                             
                             echo "Signing images..."
                             # Using both --allow-http-registry and --allow-insecure-registry for maximum compatibility
