@@ -171,6 +171,13 @@ pipeline {
                             unset COSIGN_SIGNING_CONFIG
                             unset COSIGN_USE_SIGNING_CONFIG
                             
+                            # Create a signing config without TLOG for modern Cosign (v3+)
+                            cat <<EOF > no-tlog-config.json
+{
+  "mediaType": "application/vnd.dev.sigstore.signingconfig.v0.2+json"
+}
+EOF
+
                             echo "Authentication to Harbor..."
                             echo "$HARBOR_PASS" | docker login "$HARBOR_URL" -u "$HARBOR_USER" --password-stdin
                             
@@ -180,11 +187,11 @@ pipeline {
                             cosign login "$HARBOR_URL" -u "$HARBOR_USER" -p "$HARBOR_PASS" || true
                             
                             echo "Signing images..."
-                            # Using both --allow-http-registry and --allow-insecure-registry for maximum compatibility
-                            cosign sign --key "$COSIGN_KEY_FILE" --tlog-upload=false --allow-http-registry --allow-insecure-registry "$IMAGE_NAME_BACKEND:$IMAGE_TAG" --yes
-                            cosign sign --key "$COSIGN_KEY_FILE" --tlog-upload=false --allow-http-registry --allow-insecure-registry "$IMAGE_NAME_FRONTEND:$IMAGE_TAG" --yes
-                            cosign sign --key "$COSIGN_KEY_FILE" --tlog-upload=false --allow-http-registry --allow-insecure-registry "$IMAGE_NAME_BACKEND:latest" --yes
-                            cosign sign --key "$COSIGN_KEY_FILE" --tlog-upload=false --allow-http-registry --allow-insecure-registry "$IMAGE_NAME_FRONTEND:latest" --yes
+                            # Using --signing-config instead of the deprecated --tlog-upload=false
+                            cosign sign --key "$COSIGN_KEY_FILE" --signing-config no-tlog-config.json --allow-http-registry --allow-insecure-registry "$IMAGE_NAME_BACKEND:$IMAGE_TAG" --yes
+                            cosign sign --key "$COSIGN_KEY_FILE" --signing-config no-tlog-config.json --allow-http-registry --allow-insecure-registry "$IMAGE_NAME_FRONTEND:$IMAGE_TAG" --yes
+                            cosign sign --key "$COSIGN_KEY_FILE" --signing-config no-tlog-config.json --allow-http-registry --allow-insecure-registry "$IMAGE_NAME_BACKEND:latest" --yes
+                            cosign sign --key "$COSIGN_KEY_FILE" --signing-config no-tlog-config.json --allow-http-registry --allow-insecure-registry "$IMAGE_NAME_FRONTEND:latest" --yes
                             
                             echo "Verifying signatures..."
                             # Verification requires the public key
