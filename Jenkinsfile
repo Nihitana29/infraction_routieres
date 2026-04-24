@@ -31,24 +31,17 @@ pipeline {
             steps {
                 catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
                     script {
-                        def nvdApiKeyArg = ""
-                        try {
-                            withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
-                                nvdApiKeyArg = "--nvdApiKey ${NVD_API_KEY}"
-                            }
-                        } catch (Exception e) {
-                            echo "NVD API Key not found. Proceeding without it."
+                        withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
+                            sh '''
+                                if [ -f /opt/dependency-check/bin/dependency-check.sh ]; then
+                                    /opt/dependency-check/bin/dependency-check.sh --scan ./ --format HTML --format XML --project infractions-routieres --out . --failOnCVSS 7 --nvdApiKey "$NVD_API_KEY" || \
+                                    (echo 'NVD Update failed, attempting scan with local data only...' && \
+                                     /opt/dependency-check/bin/dependency-check.sh --scan ./ --format HTML --format XML --project infractions-routieres --out . --noupdate || true)
+                                else
+                                    echo "Dependency Check binary not found, skipping scan."
+                                fi
+                            '''
                         }
-                        
-                        sh """
-                            if [ -f /opt/dependency-check/bin/dependency-check.sh ]; then
-                                /opt/dependency-check/bin/dependency-check.sh --scan ./ --format HTML --format XML --project infractions-routieres --out . --failOnCVSS 7 ${nvdApiKeyArg} || \
-                                (echo 'NVD Update failed, attempting scan with local data only...' && \
-                                 /opt/dependency-check/bin/dependency-check.sh --scan ./ --format HTML --format XML --project infractions-routieres --out . --noupdate || true)
-                            else
-                                echo "Dependency Check binary not found, skipping scan."
-                            fi
-                        """
                     }
                 }
                 script {
@@ -141,17 +134,17 @@ pipeline {
             steps {
                 script {
                     withCredentials([usernamePassword(credentialsId: "${HARBOR_CREDENTIALS_ID}", passwordVariable: 'HARBOR_PASS', usernameVariable: 'HARBOR_USER')]) {
-                        sh "echo \$HARBOR_PASS | docker login ${HARBOR_URL} -u \$HARBOR_USER --password-stdin"
+                        sh 'echo "$HARBOR_PASS" | docker login "$HARBOR_URL" -u "$HARBOR_USER" --password-stdin'
                         
                         // Push versioned tags
-                        sh "docker push ${IMAGE_NAME_BACKEND}:${IMAGE_TAG}"
-                        sh "docker push ${IMAGE_NAME_FRONTEND}:${IMAGE_TAG}"
+                        sh 'docker push "$IMAGE_NAME_BACKEND:$IMAGE_TAG"'
+                        sh 'docker push "$IMAGE_NAME_FRONTEND:$IMAGE_TAG"'
                         
                         // Tag and Push 'latest'
-                        sh "docker tag ${IMAGE_NAME_BACKEND}:${IMAGE_TAG} ${IMAGE_NAME_BACKEND}:latest"
-                        sh "docker tag ${IMAGE_NAME_FRONTEND}:${IMAGE_TAG} ${IMAGE_NAME_FRONTEND}:latest"
-                        sh "docker push ${IMAGE_NAME_BACKEND}:latest"
-                        sh "docker push ${IMAGE_NAME_FRONTEND}:latest"
+                        sh 'docker tag "$IMAGE_NAME_BACKEND:$IMAGE_TAG" "$IMAGE_NAME_BACKEND:latest"'
+                        sh 'docker tag "$IMAGE_NAME_FRONTEND:$IMAGE_TAG" "$IMAGE_NAME_FRONTEND:latest"'
+                        sh 'docker push "$IMAGE_NAME_BACKEND:latest"'
+                        sh 'docker push "$IMAGE_NAME_FRONTEND:latest"'
                     }
                 }
             }
@@ -169,39 +162,37 @@ pipeline {
                         string(credentialsId: "${COSIGN_PASSWORD_ID}", variable: 'COSIGN_PASSWORD'),
                         usernamePassword(credentialsId: "${HARBOR_CREDENTIALS_ID}", passwordVariable: 'HARBOR_PASS', usernameVariable: 'HARBOR_USER')
                     ]) {
-                        sh "cosign version"
+                        sh 'cosign version'
                         
-                        // Combining login and signing into one block for better environment consistency
-                        sh """
-                            set -x
-                            export COSIGN_PASSWORD="${COSIGN_PASSWORD}"
+                        sh '''
+                            set -e
                             export COSIGN_LOG=debug
                             
-                            echo "Connectivity check to Harbor..."
-                            # Simple check to verify connectivity to the registry port
-                            if ! command -v curl &> /dev/null; then
-                                echo "curl not found, skipping connectivity check."
-                            else
-                                curl -v http://${HARBOR_URL}/v2/ || echo "Warning: Could not reach registry via curl, but proceeding..."
-                            fi
-
                             echo "Authentication to Harbor..."
-                            # Docker login for image references
-                            echo "${HARBOR_PASS}" | docker login "${HARBOR_URL}" -u "${HARBOR_USER}" --password-stdin
+                            echo "$HARBOR_PASS" | docker login "$HARBOR_URL" -u "$HARBOR_USER" --password-stdin
                             
-                            # Explicit Cosign login for better reliability
-                            cosign login "${HARBOR_URL}" -u "${HARBOR_USER}" -p "${HARBOR_PASS}" --allow-http-registry
-                            
-                            echo "Verifying key file..."
-                            ls -l "${COSIGN_KEY_FILE}"
+                            # Using password-stdin for cosign login if supported, otherwise falling back to -p
+                            # Note: cosign login is often redundant if docker login succeeded, but can help with some registry types
+                            echo "$HARBOR_PASS" | cosign login "$HARBOR_URL" -u "$HARBOR_USER" --password-stdin --allow-http-registry || \
+                            cosign login "$HARBOR_URL" -u "$HARBOR_USER" -p "$HARBOR_PASS" --allow-http-registry
                             
                             echo "Signing images..."
-                            # Using both --allow-http-registry and --allow-insecure-registry for maximum compatibility with local setups
-                            cosign sign --key "${COSIGN_KEY_FILE}" --tlog-upload=false --allow-http-registry --allow-insecure-registry "${IMAGE_NAME_BACKEND}:${IMAGE_TAG}" -y
-                            cosign sign --key "${COSIGN_KEY_FILE}" --tlog-upload=false --allow-http-registry --allow-insecure-registry "${IMAGE_NAME_FRONTEND}:${IMAGE_TAG}" -y
-                            cosign sign --key "${COSIGN_KEY_FILE}" --tlog-upload=false --allow-http-registry --allow-insecure-registry "${IMAGE_NAME_BACKEND}:latest" -y
-                            cosign sign --key "${COSIGN_KEY_FILE}" --tlog-upload=false --allow-http-registry --allow-insecure-registry "${IMAGE_NAME_FRONTEND}:latest" -y
-                        """
+                            # Using both --allow-http-registry and --allow-insecure-registry for maximum compatibility
+                            cosign sign --key "$COSIGN_KEY_FILE" --tlog-upload=false --allow-http-registry --allow-insecure-registry "$IMAGE_NAME_BACKEND:$IMAGE_TAG" -y
+                            cosign sign --key "$COSIGN_KEY_FILE" --tlog-upload=false --allow-http-registry --allow-insecure-registry "$IMAGE_NAME_FRONTEND:$IMAGE_TAG" -y
+                            cosign sign --key "$COSIGN_KEY_FILE" --tlog-upload=false --allow-http-registry --allow-insecure-registry "$IMAGE_NAME_BACKEND:latest" -y
+                            cosign sign --key "$COSIGN_KEY_FILE" --tlog-upload=false --allow-http-registry --allow-insecure-registry "$IMAGE_NAME_FRONTEND:latest" -y
+                            
+                            echo "Verifying signatures..."
+                            # Verification requires the public key
+                            # We can use the cosign.pub file if available in the workspace
+                            if [ -f "cosign.pub" ]; then
+                                cosign verify --key cosign.pub --allow-http-registry --allow-insecure-registry "$IMAGE_NAME_BACKEND:$IMAGE_TAG"
+                                cosign verify --key cosign.pub --allow-http-registry --allow-insecure-registry "$IMAGE_NAME_FRONTEND:$IMAGE_TAG"
+                            else
+                                echo "cosign.pub not found, skipping local verification."
+                            fi
+                        '''
                     }
                 }
             }
