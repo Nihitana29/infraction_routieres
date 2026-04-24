@@ -167,6 +167,9 @@ pipeline {
                         sh '''
                             set -e
                             export COSIGN_LOG=debug
+                            # Unset potential conflicting variables from Jenkins environment
+                            unset COSIGN_SIGNING_CONFIG
+                            unset COSIGN_USE_SIGNING_CONFIG
                             
                             echo "Authentication to Harbor..."
                             echo "$HARBOR_PASS" | docker login "$HARBOR_URL" -u "$HARBOR_USER" --password-stdin
@@ -178,10 +181,10 @@ pipeline {
                             
                             echo "Signing images..."
                             # Using both --allow-http-registry and --allow-insecure-registry for maximum compatibility
-                            cosign sign --key "$COSIGN_KEY_FILE" --tlog-upload=false --allow-http-registry --allow-insecure-registry "$IMAGE_NAME_BACKEND:$IMAGE_TAG" -y
-                            cosign sign --key "$COSIGN_KEY_FILE" --tlog-upload=false --allow-http-registry --allow-insecure-registry "$IMAGE_NAME_FRONTEND:$IMAGE_TAG" -y
-                            cosign sign --key "$COSIGN_KEY_FILE" --tlog-upload=false --allow-http-registry --allow-insecure-registry "$IMAGE_NAME_BACKEND:latest" -y
-                            cosign sign --key "$COSIGN_KEY_FILE" --tlog-upload=false --allow-http-registry --allow-insecure-registry "$IMAGE_NAME_FRONTEND:latest" -y
+                            cosign sign --key "$COSIGN_KEY_FILE" --tlog-upload=false --allow-http-registry --allow-insecure-registry "$IMAGE_NAME_BACKEND:$IMAGE_TAG" --yes
+                            cosign sign --key "$COSIGN_KEY_FILE" --tlog-upload=false --allow-http-registry --allow-insecure-registry "$IMAGE_NAME_FRONTEND:$IMAGE_TAG" --yes
+                            cosign sign --key "$COSIGN_KEY_FILE" --tlog-upload=false --allow-http-registry --allow-insecure-registry "$IMAGE_NAME_BACKEND:latest" --yes
+                            cosign sign --key "$COSIGN_KEY_FILE" --tlog-upload=false --allow-http-registry --allow-insecure-registry "$IMAGE_NAME_FRONTEND:latest" --yes
                             
                             echo "Verifying signatures..."
                             # Verification requires the public key
