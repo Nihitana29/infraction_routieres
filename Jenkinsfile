@@ -171,16 +171,16 @@ pipeline {
                     ]) {
                         sh "cosign version"
                         
-                        // Authentication to Harbor for Cosign
-                        sh "cosign login ${HARBOR_URL} -u \$HARBOR_USER -p \$HARBOR_PASS"
+                        // Authentication to Harbor (reverting to docker login which worked)
+                        sh "echo \$HARBOR_PASS | docker login ${HARBOR_URL} -u \$HARBOR_USER --password-stdin"
                         
                         // Sign images (using --tlog-upload=false for private registries)
-                        sh "cosign sign --key \$COSIGN_KEY_FILE --tlog-upload=false --allow-http-registry ${IMAGE_NAME_BACKEND}:${IMAGE_TAG} -y"
-                        sh "cosign sign --key \$COSIGN_KEY_FILE --tlog-upload=false --allow-http-registry ${IMAGE_NAME_FRONTEND}:${IMAGE_TAG} -y"
-                        
-                        // Sign 'latest' images
-                        sh "cosign sign --key \$COSIGN_KEY_FILE --tlog-upload=false --allow-http-registry ${IMAGE_NAME_BACKEND}:latest -y"
-                        sh "cosign sign --key \$COSIGN_KEY_FILE --tlog-upload=false --allow-http-registry ${IMAGE_NAME_FRONTEND}:latest -y"
+                        sh """
+                            cosign sign --key \$COSIGN_KEY_FILE --tlog-upload=false --allow-http-registry ${IMAGE_NAME_BACKEND}:${IMAGE_TAG} -y
+                            cosign sign --key \$COSIGN_KEY_FILE --tlog-upload=false --allow-http-registry ${IMAGE_NAME_FRONTEND}:${IMAGE_TAG} -y
+                            cosign sign --key \$COSIGN_KEY_FILE --tlog-upload=false --allow-http-registry ${IMAGE_NAME_BACKEND}:latest -y
+                            cosign sign --key \$COSIGN_KEY_FILE --tlog-upload=false --allow-http-registry ${IMAGE_NAME_FRONTEND}:latest -y
+                        """
                     }
                 }
             }
