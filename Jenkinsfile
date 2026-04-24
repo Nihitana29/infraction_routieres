@@ -167,17 +167,21 @@ pipeline {
                 script {
                     withCredentials([
                         file(credentialsId: "${COSIGN_KEY_ID}", variable: 'COSIGN_KEY_FILE'), 
-                        string(credentialsId: "${COSIGN_PASSWORD_ID}", variable: 'COSIGN_PASSWORD')
+                        string(credentialsId: "${COSIGN_PASSWORD_ID}", variable: 'COSIGN_PASSWORD'),
+                        usernamePassword(credentialsId: "${HARBOR_CREDENTIALS_ID}", passwordVariable: 'HARBOR_PASS', usernameVariable: 'HARBOR_USER')
                     ]) {
                         sh "cosign version"
                         
+                        // Authentication to Harbor for Cosign
+                        sh "echo \$HARBOR_PASS | docker login ${HARBOR_URL} -u \$HARBOR_USER --password-stdin"
+                        
                         // Sign versioned images
-                        sh "export COSIGN_PASSWORD='\${COSIGN_PASSWORD}'; cosign sign --key '\${COSIGN_KEY_FILE}' --allow-http-registry ${IMAGE_NAME_BACKEND}:${IMAGE_TAG} -y"
-                        sh "export COSIGN_PASSWORD='\${COSIGN_PASSWORD}'; cosign sign --key '\${COSIGN_KEY_FILE}' --allow-http-registry ${IMAGE_NAME_FRONTEND}:${IMAGE_TAG} -y"
+                        sh "cosign sign --key \$COSIGN_KEY_FILE --allow-http-registry ${IMAGE_NAME_BACKEND}:${IMAGE_TAG} -y"
+                        sh "cosign sign --key \$COSIGN_KEY_FILE --allow-http-registry ${IMAGE_NAME_FRONTEND}:${IMAGE_TAG} -y"
                         
                         // Sign 'latest' images
-                        sh "export COSIGN_PASSWORD='\${COSIGN_PASSWORD}'; cosign sign --key '\${COSIGN_KEY_FILE}' --allow-http-registry ${IMAGE_NAME_BACKEND}:latest -y"
-                        sh "export COSIGN_PASSWORD='\${COSIGN_PASSWORD}'; cosign sign --key '\${COSIGN_KEY_FILE}' --allow-http-registry ${IMAGE_NAME_FRONTEND}:latest -y"
+                        sh "cosign sign --key \$COSIGN_KEY_FILE --allow-http-registry ${IMAGE_NAME_BACKEND}:latest -y"
+                        sh "cosign sign --key \$COSIGN_KEY_FILE --allow-http-registry ${IMAGE_NAME_FRONTEND}:latest -y"
                     }
                 }
             }
