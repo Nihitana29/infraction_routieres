@@ -9,7 +9,7 @@ services:
     restart: unless-stopped
 
   backend:
-    image: host.docker.internal:8082/infractions/backend:latest
+    image: infractions-backend:latest
     container_name: infractions-backend
     ports:
       - "3000:3000"
@@ -22,7 +22,7 @@ services:
     restart: unless-stopped
 
   frontend:
-    image: host.docker.internal:8082/infractions/frontend:latest
+    image: infractions-frontend:latest
     container_name: infractions-frontend
     ports:
       - "8081:8080"
@@ -30,27 +30,5 @@ services:
       - backend
     restart: unless-stopped
 
-  sonarqube:
-    image: sonarqube:lts-community
-    container_name: sonarqube
-    ports:
-      - "9000:9000"
-    networks:
-      - default
-      - jenkins_net
-    volumes:
-      - sonarqube_data:/opt/sonarqube/data
-      - sonarqube_extensions:/opt/sonarqube/extensions
-      - sonarqube_logs:/opt/sonarqube/logs
-    restart: unless-stopped
-
 volumes:
   mongo-data:
-  sonarqube_data:
-  sonarqube_extensions:
-  sonarqube_logs:
-
-networks:
-  jenkins_net:
-    external: true
-    name: jenkinsdocker_default

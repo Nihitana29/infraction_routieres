@@ -2,16 +2,15 @@ pipeline {
     agent none
 
     environment {
-        HARBOR_URL = 'host.docker.internal:8082'
-        HARBOR_PROJECT = 'infractions'
-        IMAGE_NAME_BACKEND = "${HARBOR_URL}/${HARBOR_PROJECT}/backend"
-        IMAGE_NAME_FRONTEND = "${HARBOR_URL}/${HARBOR_PROJECT}/frontend"
-        IMAGE_TAG = "v${env.BUILD_NUMBER}"
+        IMAGE_NAME_BACKEND = "infractions-backend"
+        IMAGE_NAME_FRONTEND = "infractions-frontend"
+        IMAGE_TAG = "latest"
         
-        HARBOR_CREDENTIALS_ID = 'harbor-credentials'
         SONAR_TOKEN_ID = 'sonar-token'
-        COSIGN_KEY_ID = 'cosign-key'
-        COSIGN_PASSWORD_ID = 'cosign-password'
+        
+        UBUNTU_IP = '192.168.10.132'
+        UBUNTU_USER = 'ubuntu'
+        UBUNTU_CREDENTIALS_ID = 'ubuntu-ssh-key'
     }
 
     triggers {
@@ -129,89 +128,37 @@ pipeline {
             }
         }
 
-        stage('Push Images to Harbor') {
+        stage('Deploy to Ubuntu Server') {
             agent any
             steps {
                 script {
-                    withCredentials([usernamePassword(credentialsId: "${HARBOR_CREDENTIALS_ID}", passwordVariable: 'HARBOR_PASS', usernameVariable: 'HARBOR_USER')]) {
-                        sh 'echo "$HARBOR_PASS" | docker login "$HARBOR_URL" -u "$HARBOR_USER" --password-stdin'
+                    echo "Saving Docker images to tar files..."
+                    sh "docker save -o backend.tar ${IMAGE_NAME_BACKEND}:${IMAGE_TAG}"
+                    sh "docker save -o frontend.tar ${IMAGE_NAME_FRONTEND}:${IMAGE_TAG}"
+
+                    echo "Deploying to Ubuntu Server via SSH..."
+                    sshagent (credentials: ["${UBUNTU_CREDENTIALS_ID}"]) {
+                        // Create a deployment directory on the VM
+                        sh "ssh -o StrictHostKeyChecking=no ${UBUNTU_USER}@${UBUNTU_IP} 'mkdir -p ~/infractions_deploy'"
                         
-                        // Push versioned tags
-                        sh 'docker push "$IMAGE_NAME_BACKEND:$IMAGE_TAG"'
-                        sh 'docker push "$IMAGE_NAME_FRONTEND:$IMAGE_TAG"'
+                        // Transfer files
+                        sh "scp -o StrictHostKeyChecking=no backend.tar frontend.tar docker-compose.yml ${UBUNTU_USER}@${UBUNTU_IP}:~/infractions_deploy/"
                         
-                        // Tag and Push 'latest'
-                        sh 'docker tag "$IMAGE_NAME_BACKEND:$IMAGE_TAG" "$IMAGE_NAME_BACKEND:latest"'
-                        sh 'docker tag "$IMAGE_NAME_FRONTEND:$IMAGE_TAG" "$IMAGE_NAME_FRONTEND:latest"'
-                        sh 'docker push "$IMAGE_NAME_BACKEND:latest"'
-                        sh 'docker push "$IMAGE_NAME_FRONTEND:latest"'
+                        // Load images and run docker-compose
+                        sh """
+                        ssh -o StrictHostKeyChecking=no ${UBUNTU_USER}@${UBUNTU_IP} '
+                            cd ~/infractions_deploy
+                            docker load -i backend.tar
+                            docker load -i frontend.tar
+                            docker compose down
+                            docker compose up -d
+                            
+                            # Cleanup tar files to save space
+                            rm backend.tar frontend.tar
+                        '
+                        """
                     }
                 }
-            }
-        }
-
-        stage('Sign Images with Cosign') {
-            agent any
-            environment {
-                COSIGN_INSECURE = 'true'
-            }
-            steps {
-                script {
-                    withCredentials([
-                        file(credentialsId: "${COSIGN_KEY_ID}", variable: 'COSIGN_KEY_FILE'), 
-                        string(credentialsId: "${COSIGN_PASSWORD_ID}", variable: 'COSIGN_PASSWORD'),
-                        usernamePassword(credentialsId: "${HARBOR_CREDENTIALS_ID}", passwordVariable: 'HARBOR_PASS', usernameVariable: 'HARBOR_USER')
-                    ]) {
-                        sh 'cosign version'
-                        
-                        sh '''
-                            set -e
-                            export COSIGN_LOG=debug
-                            # Unset potential conflicting variables from Jenkins environment
-                            unset COSIGN_SIGNING_CONFIG
-                            unset COSIGN_USE_SIGNING_CONFIG
-                            
-                            # Create a signing config without TLOG for modern Cosign (v3+)
-                            cat <<EOF > no-tlog-config.json
-{
-  "mediaType": "application/vnd.dev.sigstore.signingconfig.v0.2+json"
-}
-EOF
-
-                            echo "Authentication to Harbor..."
-                            echo "$HARBOR_PASS" | docker login "$HARBOR_URL" -u "$HARBOR_USER" --password-stdin
-                            
-                            # Using password-stdin for cosign login if supported, otherwise falling back to -p
-                            # Note: cosign login is often redundant if docker login succeeded, but can help with some registry types
-                            echo "$HARBOR_PASS" | cosign login "$HARBOR_URL" -u "$HARBOR_USER" --password-stdin || \
-                            cosign login "$HARBOR_URL" -u "$HARBOR_USER" -p "$HARBOR_PASS" || true
-                            
-                            echo "Signing images..."
-                            # Using --signing-config instead of the deprecated --tlog-upload=false
-                            cosign sign --key "$COSIGN_KEY_FILE" --signing-config no-tlog-config.json --allow-http-registry --allow-insecure-registry "$IMAGE_NAME_BACKEND:$IMAGE_TAG" --yes
-                            cosign sign --key "$COSIGN_KEY_FILE" --signing-config no-tlog-config.json --allow-http-registry --allow-insecure-registry "$IMAGE_NAME_FRONTEND:$IMAGE_TAG" --yes
-                            cosign sign --key "$COSIGN_KEY_FILE" --signing-config no-tlog-config.json --allow-http-registry --allow-insecure-registry "$IMAGE_NAME_BACKEND:latest" --yes
-                            cosign sign --key "$COSIGN_KEY_FILE" --signing-config no-tlog-config.json --allow-http-registry --allow-insecure-registry "$IMAGE_NAME_FRONTEND:latest" --yes
-                            
-                            echo "Verifying signatures..."
-                            # Verification requires the public key
-                            # We can use the cosign.pub file if available in the workspace
-                            if [ -f "cosign.pub" ]; then
-                                cosign verify --key cosign.pub --allow-http-registry --allow-insecure-registry "$IMAGE_NAME_BACKEND:$IMAGE_TAG"
-                                cosign verify --key cosign.pub --allow-http-registry --allow-insecure-registry "$IMAGE_NAME_FRONTEND:$IMAGE_TAG"
-                            else
-                                echo "cosign.pub not found, skipping local verification."
-                            fi
-                        '''
-                    }
-                }
-            }
-        }
-        
-        stage('Deploy (Optional / Managed)') {
-            agent any
-            steps {
-                echo "Images are pushed and signed. Ready for deployment in a target environment."
             }
         }
     }
