@@ -27,8 +27,13 @@ function AddVehicule() {
       ;
 
       navigate("/vehicules");
-    } catch { /* ignore */
-      
+    } catch (error) {
+      if (error.response && error.response.data && error.response.data.errors) {
+        const errorMessages = error.response.data.errors.map(err => err.msg).join('\\n');
+        alert("Erreur: \\n" + errorMessages);
+      } else {
+        alert("Une erreur inattendue s'est produite lors de l'ajout.");
+      }
     }
   };
 
