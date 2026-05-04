@@ -2,16 +2,17 @@ pipeline {
     agent none
 
     environment {
-        HARBOR_URL = 'host.docker.internal:8082'
-        HARBOR_PROJECT = 'infractions'
-        IMAGE_NAME_BACKEND = "${HARBOR_URL}/${HARBOR_PROJECT}/backend"
-        IMAGE_NAME_FRONTEND = "${HARBOR_URL}/${HARBOR_PROJECT}/frontend"
+        DOCKERHUB_USERNAME = 'nihitana29'
+        IMAGE_NAME_BACKEND = "${DOCKERHUB_USERNAME}/infractions-backend"
+        IMAGE_NAME_FRONTEND = "${DOCKERHUB_USERNAME}/infractions-frontend"
         IMAGE_TAG = "v${env.BUILD_NUMBER}"
         
-        HARBOR_CREDENTIALS_ID = 'harbor-credentials'
+        DOCKERHUB_CREDENTIALS_ID = 'dockerhub-credentials'
         SONAR_TOKEN_ID = 'sonar-token'
         COSIGN_KEY_ID = 'cosign-key'
         COSIGN_PASSWORD_ID = 'cosign-password'
+        UBUNTU_SSH_CREDENTIALS_ID = 'ubuntu-ssh-key'
+        UBUNTU_IP = '192.168.10.132'
     }
 
     triggers {
@@ -129,12 +130,12 @@ pipeline {
             }
         }
 
-        stage('Push Images to Harbor') {
+        stage('Push to Docker Hub') {
             agent any
             steps {
                 script {
-                    withCredentials([usernamePassword(credentialsId: "${HARBOR_CREDENTIALS_ID}", passwordVariable: 'HARBOR_PASS', usernameVariable: 'HARBOR_USER')]) {
-                        sh 'echo "$HARBOR_PASS" | docker login "$HARBOR_URL" -u "$HARBOR_USER" --password-stdin'
+                    withCredentials([usernamePassword(credentialsId: "${DOCKERHUB_CREDENTIALS_ID}", passwordVariable: 'DOCKERHUB_PASS', usernameVariable: 'DOCKERHUB_USER')]) {
+                        sh 'echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USER" --password-stdin'
                         
                         // Push versioned tags
                         sh 'docker push "$IMAGE_NAME_BACKEND:$IMAGE_TAG"'
@@ -153,52 +154,45 @@ pipeline {
         stage('Sign Images with Cosign') {
             agent any
             environment {
-                COSIGN_INSECURE = 'true'
+                COSIGN_INSECURE = 'false'
             }
             steps {
                 script {
                     withCredentials([
                         file(credentialsId: "${COSIGN_KEY_ID}", variable: 'COSIGN_KEY_FILE'), 
                         string(credentialsId: "${COSIGN_PASSWORD_ID}", variable: 'COSIGN_PASSWORD'),
-                        usernamePassword(credentialsId: "${HARBOR_CREDENTIALS_ID}", passwordVariable: 'HARBOR_PASS', usernameVariable: 'HARBOR_USER')
+                        usernamePassword(credentialsId: "${DOCKERHUB_CREDENTIALS_ID}", passwordVariable: 'DOCKERHUB_PASS', usernameVariable: 'DOCKERHUB_USER')
                     ]) {
                         sh 'cosign version'
                         
                         sh '''
                             set -e
                             export COSIGN_LOG=debug
-                            # Unset potential conflicting variables from Jenkins environment
                             unset COSIGN_SIGNING_CONFIG
                             unset COSIGN_USE_SIGNING_CONFIG
                             
-                            # Create a signing config without TLOG for modern Cosign (v3+)
                             cat <<EOF > no-tlog-config.json
 {
   "mediaType": "application/vnd.dev.sigstore.signingconfig.v0.2+json"
 }
 EOF
 
-                            echo "Authentication to Harbor..."
-                            echo "$HARBOR_PASS" | docker login "$HARBOR_URL" -u "$HARBOR_USER" --password-stdin
+                            echo "Authentication to Docker Hub..."
+                            echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USER" --password-stdin
                             
-                            # Using password-stdin for cosign login if supported, otherwise falling back to -p
-                            # Note: cosign login is often redundant if docker login succeeded, but can help with some registry types
-                            echo "$HARBOR_PASS" | cosign login "$HARBOR_URL" -u "$HARBOR_USER" --password-stdin || \
-                            cosign login "$HARBOR_URL" -u "$HARBOR_USER" -p "$HARBOR_PASS" || true
+                            echo "$DOCKERHUB_PASS" | cosign login -u "$DOCKERHUB_USER" --password-stdin || \
+                            cosign login docker.io -u "$DOCKERHUB_USER" -p "$DOCKERHUB_PASS" || true
                             
                             echo "Signing images..."
-                            # Using --signing-config instead of the deprecated --tlog-upload=false
-                            cosign sign --key "$COSIGN_KEY_FILE" --signing-config no-tlog-config.json --allow-http-registry --allow-insecure-registry "$IMAGE_NAME_BACKEND:$IMAGE_TAG" --yes
-                            cosign sign --key "$COSIGN_KEY_FILE" --signing-config no-tlog-config.json --allow-http-registry --allow-insecure-registry "$IMAGE_NAME_FRONTEND:$IMAGE_TAG" --yes
-                            cosign sign --key "$COSIGN_KEY_FILE" --signing-config no-tlog-config.json --allow-http-registry --allow-insecure-registry "$IMAGE_NAME_BACKEND:latest" --yes
-                            cosign sign --key "$COSIGN_KEY_FILE" --signing-config no-tlog-config.json --allow-http-registry --allow-insecure-registry "$IMAGE_NAME_FRONTEND:latest" --yes
+                            cosign sign --key "$COSIGN_KEY_FILE" --signing-config no-tlog-config.json "$IMAGE_NAME_BACKEND:$IMAGE_TAG" --yes
+                            cosign sign --key "$COSIGN_KEY_FILE" --signing-config no-tlog-config.json "$IMAGE_NAME_FRONTEND:$IMAGE_TAG" --yes
+                            cosign sign --key "$COSIGN_KEY_FILE" --signing-config no-tlog-config.json "$IMAGE_NAME_BACKEND:latest" --yes
+                            cosign sign --key "$COSIGN_KEY_FILE" --signing-config no-tlog-config.json "$IMAGE_NAME_FRONTEND:latest" --yes
                             
                             echo "Verifying signatures..."
-                            # Verification requires the public key
-                            # We can use the cosign.pub file if available in the workspace
                             if [ -f "cosign.pub" ]; then
-                                cosign verify --key cosign.pub --allow-http-registry --allow-insecure-registry "$IMAGE_NAME_BACKEND:$IMAGE_TAG"
-                                cosign verify --key cosign.pub --allow-http-registry --allow-insecure-registry "$IMAGE_NAME_FRONTEND:$IMAGE_TAG"
+                                cosign verify --key cosign.pub "$IMAGE_NAME_BACKEND:$IMAGE_TAG"
+                                cosign verify --key cosign.pub "$IMAGE_NAME_FRONTEND:$IMAGE_TAG"
                             else
                                 echo "cosign.pub not found, skipping local verification."
                             fi
@@ -208,10 +202,22 @@ EOF
             }
         }
         
-        stage('Deploy (Optional / Managed)') {
+        stage('Deploy to Ubuntu Server') {
             agent any
             steps {
-                echo "Images are pushed and signed. Ready for deployment in a target environment."
+                script {
+                    echo "Deploying to Ubuntu Server at ${UBUNTU_IP}..."
+                    sshagent(credentials: ["${UBUNTU_SSH_CREDENTIALS_ID}"]) {
+                        sh """
+                            scp -o StrictHostKeyChecking=no docker-compose.yml ubuntu@${UBUNTU_IP}:/home/ubuntu/
+                            ssh -o StrictHostKeyChecking=no ubuntu@${UBUNTU_IP} '
+                                cd /home/ubuntu
+                                docker-compose pull
+                                docker-compose up -d --remove-orphans
+                            '
+                        """
+                    }
+                }
             }
         }
     }

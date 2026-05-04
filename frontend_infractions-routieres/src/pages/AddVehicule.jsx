@@ -22,9 +22,7 @@ function AddVehicule() {
     console.log(voiture);
     
     try {
-      await api.post('/api/voitures/', voiture)
-      
-      ;
+      await api.post('/api/voitures/', voiture);
 
       navigate("/vehicules");
     } catch (error) {
