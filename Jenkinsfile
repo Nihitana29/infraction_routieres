@@ -209,8 +209,9 @@ EOF
                     echo "Deploying to Ubuntu Server at ${UBUNTU_IP}..."
                     sshagent(credentials: ["${UBUNTU_SSH_CREDENTIALS_ID}"]) {
                         sh """
-                            scp -o StrictHostKeyChecking=no docker-compose.yml ubuntu@${UBUNTU_IP}:/home/ubuntu/
-                            ssh -o StrictHostKeyChecking=no ubuntu@${UBUNTU_IP} '
+                            scp -o StrictHostKeyChecking=no -o BatchMode=yes -o PubkeyAuthentication=yes docker-compose.yml ubuntu@${UBUNTU_IP}:/home/ubuntu/
+                            
+                            ssh -o StrictHostKeyChecking=no -o BatchMode=yes -o PubkeyAuthentication=yes ubuntu@${UBUNTU_IP} '
                                 cd /home/ubuntu
                                 docker-compose pull
                                 docker-compose up -d --remove-orphans
@@ -219,7 +220,7 @@ EOF
                     }
                 }
             }
-        }
+}
     }
 
     post {
