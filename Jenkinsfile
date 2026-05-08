@@ -213,8 +213,8 @@ EOF
                             
                             ssh -o StrictHostKeyChecking=no -o BatchMode=yes -o PubkeyAuthentication=yes ubuntu@${UBUNTU_IP} '
                                 cd /home/ubuntu
-                                docker-compose pull
-                                docker-compose up -d --remove-orphans
+                                docker compose pull
+                                docker compose up -d --remove-orphans
                             '
                         """
                     }
